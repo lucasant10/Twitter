@@ -10,7 +10,7 @@ from unicodedata import normalize
 
 dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
 excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
-sheet_name = "reeleitos"
+sheet_name = "nao_eleitos"
 col = 4
 rt = ReadTwitter(dir_in, excel_path, sheet_name, col )
 #doc_set = set()
@@ -25,7 +25,7 @@ with open(filedir) as data_file:
 """
 tokenizer = RegexpTokenizer(r'\w+')
 
-stoplist  = set(stopwords.words("portuguese") )
+stoplist  = stopwords.words("portuguese")
 #stoplist = get_stop_words('portuguese')
 
 # Create p_stemmer of class PorterStemmer
@@ -34,8 +34,7 @@ p_stemmer = SnowballStemmer("portuguese")
 # remvove urls
 
 def remove_urls(text):
-    text = re.sub(r"(?:\@|http?\://)\S+", "", text)
-    text = re.sub(r"(?:\@|https?\://)\S+", "", text)
+    text = re.sub(r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))', '', text)
     return text
 
 
@@ -48,25 +47,26 @@ texts = []
 for i in doc_set:
     # clean and tokenize document string
     raw = i.lower()
+
     #remove urls
     raw = remove_urls(raw) 
     #raw = remover_acentos(raw)
-    raw = p_stemmer.stem(raw)
     
     tokens = tokenizer.tokenize(raw)
-
+  
     # remove stop words from tokens
     stopped_tokens = [i for i in tokens if not i in stoplist]
+
     #remove unigrams and bigrams
-    stopped_tokens = [i for i in tokens if len(i) > 2]
+    stopped_tokens = [i for i in stopped_tokens if len(i) > 2]
     # remove acentos
     stopped_tokens = [remover_acentos(i) for i in stopped_tokens]
     
     # stem tokens
-    #stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
+    stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
     
     # add tokens to list
-    texts.append(stopped_tokens)
+    texts.append(stemmed_tokens)
 
 # turn our tokenized documents into a id <-> term dictionary
 dictionary = corpora.Dictionary(texts)
