@@ -7,10 +7,13 @@ import gensim
 import re
 from read_twitter import ReadTwitter
 from unicodedata import normalize
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+
 
 dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
 excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
-sheet_name = "nao_eleitos"
+sheet_name = "reeleitos"
 col = 4
 rt = ReadTwitter(dir_in, excel_path, sheet_name, col )
 #doc_set = set()
@@ -40,6 +43,17 @@ def remove_urls(text):
 
 def remover_acentos(txt):
     return normalize('NFKD', txt).encode('ASCII','ignore').decode('ASCII')
+
+def plot_text(texts):
+    txt = ""
+    for text in texts:
+        for word in text:
+            txt += " "+word
+    wc = WordCloud().generate(txt)
+    plt.imshow(wc)
+    plt.savefig('./img/tweet.png', dpi=300)
+    plt.show()
+
 
 # list for tokenized documents in loop
 texts = []
@@ -86,6 +100,7 @@ corpora.MmCorpus.serialize('tweet_teste.mm', corpus)
 # generate LDA model
 ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=10, id2word = dictionary)
 ldamodel.save('tweet_teste.lda')
+#model = gensim.models.LdaModel.load('android.lda')
 print(ldamodel.print_topics())
 ldamodel.print_topics()
 
