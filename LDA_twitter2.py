@@ -9,23 +9,25 @@ from read_twitter import ReadTwitter
 from unicodedata import normalize
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import json
 
 
 dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
 excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
-sheet_name = "reeleitos"
+sheet_name = "nao_eleitos"
 col = 4
 rt = ReadTwitter(dir_in, excel_path, sheet_name, col )
 #doc_set = set()
 doc_set = rt.tweets()
 
 """
-filedir = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/62881_Danilo Forte.json"
+filedir = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/74171_Chico Alencar.json"
 with open(filedir) as data_file:
     for line in data_file:
         tweet = json.loads(line)
         doc_set.add(tweet['text'])
 """
+    
 tokenizer = RegexpTokenizer(r'\w+')
 
 stoplist  = stopwords.words("portuguese")
@@ -36,7 +38,7 @@ p_stemmer = SnowballStemmer("portuguese")
 
 # remvove urls
 
-def remove_urls(text):
+def remove_urls(text):  
     text = re.sub(r'(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:\'".,<>?«»“”‘’]))', '', text)
     return text
 
@@ -44,19 +46,19 @@ def remove_urls(text):
 def remover_acentos(txt):
     return normalize('NFKD', txt).encode('ASCII','ignore').decode('ASCII')
 
-def plot_text(texts):
+def plot_text(texts,name):
     txt = ""
     for text in texts:
         for word in text:
             txt += " "+word
     wc = WordCloud().generate(txt)
     plt.imshow(wc)
-    plt.savefig('./img/tweet.png', dpi=300)
-    plt.show()
+    plt.savefig('./img/'+name+'.png', dpi=300)
 
 
 # list for tokenized documents in loop
 texts = []
+st_texts =[]
 # loop through document list
 for i in doc_set:
     # clean and tokenize document string
@@ -75,6 +77,8 @@ for i in doc_set:
     stopped_tokens = [i for i in stopped_tokens if len(i) > 2]
     # remove acentos
     stopped_tokens = [remover_acentos(i) for i in stopped_tokens]
+
+    st_texts.append(stopped_tokens)
     
     # stem tokens
     stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
@@ -82,18 +86,20 @@ for i in doc_set:
     # add tokens to list
     texts.append(stemmed_tokens)
 
+plot_text(st_texts, "stop")
+
 # turn our tokenized documents into a id <-> term dictionary
 dictionary = corpora.Dictionary(texts)
 dictionary.compactify()
 # and save the dictionary for future use
-dictionary.save('tweet_teste.dict')
+#dictionary.save('tweet_teste.dict')
 
     
 # convert tokenized documents into a document-term matrix
 corpus = [dictionary.doc2bow(text) for text in texts]
 
 # and save in Market Matrix format
-corpora.MmCorpus.serialize('tweet_teste.mm', corpus)
+#corpora.MmCorpus.serialize('tweet_teste.mm', corpus)
 # this corpus can be loaded with corpus = corpora.MmCorpus('tweet_teste.mm')
 
 
