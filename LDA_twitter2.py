@@ -43,6 +43,16 @@ class TextProcess:
         plt.imshow(wc)
         plt.savefig('./img/'+name+'.png', dpi=300)
 
+    def plot_text_stem(self,texts, name):
+        txt = ""
+        tokens = self.text_process(texts)
+        for text in tokens :
+            for word in text:
+                txt += " "+word
+        wc = WordCloud().generate(txt)
+        plt.imshow(wc)
+        plt.savefig('./img/'+name+'.png', dpi=300)
+
     def text_process(self,doc_set, stem=True):
         # list for tokenized documents in loop
         texts = []
@@ -73,7 +83,7 @@ class TextProcess:
             texts.append(stopped_tokens)
         return texts
 
-    def create_corpus(texts):
+    def create_corpus(self,texts):
         # turn our tokenized documents into a id <-> term dictionary
         dictionary = corpora.Dictionary(texts)
         dictionary.compactify()
@@ -87,10 +97,10 @@ class TextProcess:
         # and save in Market Matrix format
         #corpora.MmCorpus.serialize('tweet_teste.mm', corpus)
         # this corpus can be loaded with corpus = corpora.MmCorpus('tweet_teste.mm')
-        return corpus
+        return (corpus, dictionary)
 
 
-    def  generate_lda(corpus, dictionary, num_topics):
+    def  generate_lda(self, corpus, dictionary, num_topics):
             
         # generate LDA model
         ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=num_topics, id2word = dictionary)
@@ -104,17 +114,30 @@ if __name__=='__main__':
 
     dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
     excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
-    sheet_name = "novos"
+    sheet_name = "Sheet1"
     col = 4
-    rt = ReadTwitter(dir_in, excel_path, sheet_name, col )
+    rt = ReadTwitter(dir_in, excel_path, "novos", col )
+    rt2 = ReadTwitter(dir_in, excel_path, "reeleitos", col )
+    rt3 = ReadTwitter(dir_in, excel_path, "nao_eleitos", col )
     tp = TextProcess()
-    name, doc =  rt.tweets_by_rep()
+    #name, doc =  rt.tweets_by_rep()
+    antes, depois = rt.tweets_before_after()
+    antes = tp.text_process(antes)
+    depois = tp.text_process(depois)
+    corpus_antes, dic_antes  = tp.create_corpus(antes)
+    corpus_depois, dic_depois = tp.create_corpus(depois)
+    tp.generate_lda(corpus_antes, dic_antes, 15)
+    tp.generate_lda(corpus_depois, dic_depois, 15)
 
+
+
+
+"""
     for i in range(len(name)):
         tp.plot_text(doc[i],name[i])
         #doc_set = set()
         #doc_set = rt.tweets()
-        """
+        
         filedir = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/74171_Chico Alencar.json"
         with open(filedir) as data_file:
             for line in data_file:

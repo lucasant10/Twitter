@@ -1,6 +1,8 @@
 import os
 import json
 import xlrd
+import pandas as pd
+import datetime
 
 
 
@@ -22,7 +24,7 @@ class ReadTwitter:
         xls = xlrd.open_workbook(self.excel_path)
         sheet = xls.sheet_by_name(self.sheet_name)
         doc_set = set()
-        for i in range(sheet.nrows):
+        for i in range(len(sheet.col(0))):
             id_rep = str(int(sheet.cell_value(rowx= i, colx=self.col)))
             if (id_rep in self.rep_dic):
                 with open(self.dir_in+self.rep_dic[id_rep]) as data_file:
@@ -41,27 +43,32 @@ class ReadTwitter:
             id_rep = str(int(sheet.cell_value(rowx= i, colx=self.col)))
             if (id_rep in self.rep_dic):               
                 with open(self.dir_in+self.rep_dic[id_rep]) as data_file:
-                    doc_set = list()
+                    doc_list= list()
                     for line in data_file:
                         tweet = json.loads(line)
-                        doc_set.append(tweet['text'])
-                    doc.append(doc_set)
+                        doc_list.append(tweet['text'])
+                    doc.append(doc_list)
                     name.append(self.rep_dic[id_rep].split('.',1)[0])
         return (name, doc)
 
-    def tweets_before(self):
+    def tweets_before_after(self):
 
         xls = xlrd.open_workbook(self.excel_path)
         sheet = xls.sheet_by_name(self.sheet_name)
-        doc_set = set()
+        before = set()
+        after = set()
         for i in range(sheet.nrows):
             id_rep = str(int(sheet.cell_value(rowx= i, colx=self.col)))
             if (id_rep in self.rep_dic):
                 with open(self.dir_in+self.rep_dic[id_rep]) as data_file:
                     for line in data_file:
                         tweet = json.loads(line)
-                        doc_set.add(tweet['text'])
-        return doc_set
+                        date = pd.to_datetime(tweet['created_at']*1000000)
+                        if(date <= datetime.datetime(2014,10,4)):
+                            before.add(tweet['text'])
+                        if(date > datetime.datetime(2014,10,4)):
+                            after.add(tweet['text'])
+        return (before, after)
 
     def tweets_after(self):
 
@@ -74,7 +81,9 @@ class ReadTwitter:
                 with open(self.dir_in+self.rep_dic[id_rep]) as data_file:
                     for line in data_file:
                         tweet = json.loads(line)
-                        doc_set.add(tweet['text'])
+                        date = pd.to_datetime(tweet['created_at']*1000000)
+                        if(date > datetime.datetime(2014,10,4)):
+                            doc_set.add(tweet['text'])
         return doc_set
 
 
