@@ -1,6 +1,7 @@
 import os
 import xlrd
 import json
+import csv 
 
 class Mapa:
 
@@ -39,10 +40,14 @@ class Mapa:
                         num += 1
                         rt += int(tweet['retweets'])
                     dic[estado] += num
-                    print(dic_rt)
                     dic_rt[estado] += rt
-        print(dic)
-        print(dic_rt)
+        with open(self.dir_out+'retweet.txt', 'w') as f:
+            f.writelines('{}:{}\n'.format(k,v) for k, v in dic_rt.items())
+            f.close()
+        with open(self.dir_out+'tweet.txt', 'w') as fa:
+            fa.writelines('{}:{}\n'.format(k,v) for k, v in dic.items())
+            fa.close()
+
 
 
 if __name__=='__main__':
@@ -50,6 +55,6 @@ if __name__=='__main__':
     dir_out = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/profiles/"
     dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
     excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
-    sheet_name = "novos"
+    sheet_name = "reeleitos"
     pt = Mapa(dir_out, dir_in, excel_path)
     pt.save_profile(sheet_name)

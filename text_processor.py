@@ -13,7 +13,7 @@ import json
 
 
 
-class TextProcess:
+class TextProcessor:
 
     tokenizer = RegexpTokenizer(r'\w+')
 
@@ -33,7 +33,7 @@ class TextProcess:
     def remover_acentos(self, txt):
         return normalize('NFKD', txt).encode('ASCII','ignore').decode('ASCII')
 
-    def plot_text(self,texts, name):
+    def plot_text(self,texts, name, dir_out):
         txt = ""
         tokens = self.text_process(texts,False)
         for text in tokens :
@@ -41,9 +41,9 @@ class TextProcess:
                 txt += " "+word
         wc = WordCloud().generate(txt)
         plt.imshow(wc)
-        plt.savefig('./img/'+name+'.png', dpi=300)
+        plt.savefig(dir_out+name+'.png', dpi=300)
 
-    def plot_text_stem(self,texts, name):
+    def plot_text_stem(self,texts, name, dir_out):
         txt = ""
         tokens = self.text_process(texts)
         for text in tokens :
@@ -51,7 +51,7 @@ class TextProcess:
                 txt += " "+word
         wc = WordCloud().generate(txt)
         plt.imshow(wc)
-        plt.savefig('./img/'+name+'.png', dpi=300)
+        plt.savefig(dir_out+name+'.png', dpi=300)
 
     def text_process(self,doc_set, stem=True):
         # list for tokenized documents in loop
@@ -113,13 +113,14 @@ class TextProcess:
 if __name__=='__main__':
 
     dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
+    dir_out = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/plot/"
     excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
     sheet_name = "Sheet1"
     col = 4
     rt = ReadTwitter(dir_in, excel_path, "novos", col )
     rt2 = ReadTwitter(dir_in, excel_path, "reeleitos", col )
     rt3 = ReadTwitter(dir_in, excel_path, "nao_eleitos", col )
-    tp = TextProcess()
+    tp = TextProcessor()
     #name, doc =  rt.tweets_by_rep()
     antes, depois = rt.tweets_before_after()
     antes = tp.text_process(antes)
