@@ -55,6 +55,6 @@ if __name__=='__main__':
     dir_out = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/profiles/"
     dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
     excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
-    sheet_name = "reeleitos"
+    sheet_name = "novos"
     pt = Mapa(dir_out, dir_in, excel_path)
     pt.save_profile(sheet_name)

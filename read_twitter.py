@@ -86,6 +86,25 @@ class ReadTwitter:
                             doc_set.add(tweet['text'])
         return doc_set
 
+    def tweets_time_data(self):
+
+        xls = xlrd.open_workbook(self.excel_path)
+        sheet = xls.sheet_by_name(self.sheet_name)
+        data = dict()
+        names = list()
+        dict_list = list()
+        for i in range(sheet.nrows):
+            id_rep = str(int(sheet.cell_value(rowx= i, colx=self.col)))
+            names.append(str(sheet.cell_value(rowx= i, colx=0)))
+            if (id_rep in self.rep_dic):
+                with open(self.dir_in+self.rep_dic[id_rep]) as data_file:
+                    for line in data_file:
+                        tweet = json.loads(line)
+                        date = pd.to_datetime(tweet['created_at']*1000000)
+                        if(datetime.datetime(2013,10,4) <= date <= datetime.datetime(2015,10,4)):
+                            data[int(tweet['created_at'])] = tweet['text']
+            dict_list.append(data)
+        return (dict_list,names)
 
     def create_dic(self, fnames):
         for fname in fnames:
