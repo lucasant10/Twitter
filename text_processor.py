@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from nltk.tokenize import RegexpTokenizer
 from nltk.stem.snowball import SnowballStemmer
 from nltk.corpus import stopwords
