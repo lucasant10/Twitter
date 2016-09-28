@@ -110,7 +110,9 @@ class TextProcessor:
 
             #remove urls
             raw = self.remove_urls(raw) 
-            #raw = remover_acentos(raw)
+            
+            # remove acentos
+            raw = self.remover_acentos(raw)
     
             tokens = self.tokenize(raw)
           
@@ -119,9 +121,7 @@ class TextProcessor:
 
             #remove unigrams and bigrams
             stopped_tokens = [i for i in stopped_tokens if len(i) > 2]
-            # remove acentos
-            stopped_tokens = [self.remover_acentos(i) for i in stopped_tokens]
-            
+                        
             if stem:
                 # stem tokens
                 stopped_tokens = [self.p_stemmer.stem(i) for i in stopped_tokens]
