@@ -40,7 +40,7 @@ class PtBrTwitter():
 
 if __name__=='__main__':
 
-    dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
+    dir_in = "/Users/lucasso/Documents/tweets_pedro/"
     dir_out = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/plot/"
     ptbr = PtBrTwitter(dir_in,dir_out)
     ptbr.read()

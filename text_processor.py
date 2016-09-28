@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-
-from nltk.tokenize import RegexpTokenizer
 from nltk.stem.snowball import SnowballStemmer
 from nltk.corpus import stopwords
 #from stop_words import get_stop_words
@@ -11,7 +9,6 @@ from read_twitter import ReadTwitter
 from unicodedata import normalize
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-import json
 import numpy as np
 import math
 
@@ -20,7 +17,52 @@ import math
 
 class TextProcessor:
 
-    tokenizer = RegexpTokenizer(r'\w+')
+    def tokenize(self, text):
+        regex_strings = (
+
+        # Phone numbers:
+        r"""
+        (?:
+          (?:            # (international)
+            \+?[01]
+            [\-\s.]*
+          )?            
+          (?:            # (area code)
+            [\(]?
+            \d{3}
+            [\-\s.\)]*
+          )?    
+          \d{3}          # exchange
+          [\-\s.]*   
+          \d{4}          # base
+        )"""
+        ,    
+        # HTML tags:
+         r"""<[^>]+>"""
+        ,
+        # Twitter username:
+        r"""(?:@[\w_]+)"""
+        ,
+        # Twitter hashtags:
+        r"""(?:\#+[\w_]+[\w\'_\-]*[\w_]+)"""
+        ,
+        # Remaining word types:
+        r"""
+        (?:[a-z][a-z'\-_]+[a-z])       # Words with apostrophes or dashes.
+        |
+        (?:[+\-]?\d+[,/.:-]\d+[+\-]?)  # Numbers, including fractions, decimals.
+        |
+        (?:[\w_]+)                     # Words without apostrophes or dashes.
+        |
+        (?:\.(?:\s*\.){1,})            # Ellipsis dots. 
+        |
+        (?:\S)                         # Everything else that isn't whitespace.
+        """
+        )
+
+        word_re = re.compile(r"""(%s)""" % "|".join(regex_strings), re.VERBOSE | re.I | re.UNICODE)
+        return word_re.findall(text)
+        
 
     stoplist  = stopwords.words("portuguese")+['del','bom','via','nova','agora','boa','aqui', 'foto']
     #stoplist = get_stop_words('portuguese')
@@ -58,7 +100,7 @@ class TextProcessor:
         plt.imshow(wc)
         plt.savefig(dir_out+name+'.png', dpi=300)
 
-    def text_process(self,doc_set, stem=True):
+    def text_process(self,doc_set, stem=False):
         # list for tokenized documents in loop
         texts = []
         # loop through document list
@@ -70,7 +112,7 @@ class TextProcessor:
             raw = self.remove_urls(raw) 
             #raw = remover_acentos(raw)
     
-            tokens = self.tokenizer.tokenize(raw)
+            tokens = self.tokenize(raw)
           
             # remove stop words from tokens
             stopped_tokens = [i for i in tokens if not i in self.stoplist]

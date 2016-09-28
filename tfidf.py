@@ -12,28 +12,32 @@ class TfIdf():
 
     tp = TextProcessor()
 
-    def tf(self, word, w_counter):
-        return (w_counter[word] / float(len(w_counter)))
+    @staticmethod
+    def tf(word, w_counter):
+        return (w_counter[word] / float(sum(w_counter.values())))
 
-    def n_containing(self, word, doc_counter):
+    @staticmethod
+    def n_containing( word, doc_counter):
         count = 0
         for document in doc_counter:
             if document[word] > 0:
                 count += 1
         return count
 
-    def idf(self, word, doc_counter):
-        return (math.log(len(doc_counter) / float(self.n_containing(word, doc_counter))))
+    @staticmethod
+    def idf( word, doc_counter):
+        return (math.log(len(doc_counter) / float(n_containing(word, doc_counter))))
 
-    def tfidf(self, word, w_counter, doc_counter):
+    @staticmethod
+    def tfidf( word, w_counter, doc_counter):
         return (self.tf(word, w_counter) * self.idf(word, doc_counter))
 
     def read_files(self, dir_in):
-        doc_list=list()
         count_list=list()
         tw_files = ([file for root, dirs, files in os.walk(dir_in)
             for file in files if file.endswith('.json') ])
         for tw_file in tw_files:
+            doc_list=list()
             with open(dir_in+tw_file) as data_file:
                 for line in data_file:
                     tweet = json.loads(line)
@@ -70,6 +74,12 @@ class TfIdf():
         tot_counter = Counter()
         pck = ([file for root, dirs, files in os.walk(dir_in)
             for file in files if file.endswith('.pck') ])
+
+        txt = ([file for root, dirs, files in os.walk(dir_out)
+            for file in files if file.endswith('.txt') ])
+        
+        pck = [x for x in pck if x.split('.')[-1]+".txt" not in txt]
+
         for i,counter_file in enumerate(pck):
             print("processando o arquivo: "+counter_file+"\n")
             with open(dir_in+counter_file, 'rb') as data_file:
@@ -85,15 +95,27 @@ class TfIdf():
             with open(dir_out+pck[i]+".txt", "w") as f:
              f.write(json.dumps(sort))
              f.close()
+    def create_table_parl_tfidf():
+        counter_list = list()
+        tot_counter = Counter()
+        pck = ([file for root, dirs, files in os.walk(dir_in)
+            for file in files if file.endswith('.pck') ])
+        for i,counter_file in enumerate(pck):
+            print("processando o arquivo: "+counter_file+"\n")
+            with open(dir_in+counter_file, 'rb') as data_file:
+                tw_counter = pickle.load(data_file)
+                tot_counter += tw_counter
+                counter_list.append(tw_counter)
+
             
 
 if __name__=='__main__':
 
-    dir_in = "/Users/lucasso/Documents/pck/"
+    dir_in = "/Users/lucasso/Documents/tweets_pedro/"
     dir_out = "/Users/lucasso/Documents/pck/"
     ptbr = PtBrTwitter(dir_in,dir_out)
     tfidf = TfIdf()
-    #tfidf.save_counters(dir_in,dir_out)
+    tfidf.save_counters(dir_in,dir_out)
     tfidf.save_tfidf(dir_in, dir_out)
 
 

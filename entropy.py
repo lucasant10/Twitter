@@ -21,7 +21,7 @@ def days2timeInterval(day1, day2):
 
 if __name__=='__main__':
 
-    dir_in = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/coleta_pedro/"
+    dir_in = "/Users/lucasso/Documents/tweets_pedro/"
     dir_out = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/plot/"
     excel_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Arquivo Principal da Pesquisa - Quatro Etapas.xls"
     sheet_name = "amostra"
