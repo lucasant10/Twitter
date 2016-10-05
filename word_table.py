@@ -102,6 +102,18 @@ class WordTable():
          f.write(head+out)
          f.close()
 
+def save_word_list(dir_out,file_name,tot_counter, counter_list, randon_counter):
+    
+    word_list = list()
+    for k,v in tot_counter.items():
+        ent = self.entropy(k, tot_counter,counter_list )
+        ratio = self.ratio(k,tot_counter,randon_counter)
+        # if entropy between 0 and 8 and ratio > 1, save in list 
+        if (0 < ent < 8) & (ratio > 1):
+            word_list.append(k)
+    with open(dir_out+file_name, 'wb') as handle:
+        pickle.dump(word_list, handle)
+
 
 
             
@@ -114,9 +126,10 @@ if __name__=='__main__':
     file_path = "/home/lucasso/Dropbox/Twitter_Marcelo/Report/plot/Counter_pt-br.pck"
     word_table = WordTable()
     tot_counter, counter_list, pck = word_table.read_counters(dir_in)
-    radon_counter = word_table.loadCounter(file_path)
+    randon_counter = word_table.loadCounter(file_path)
     word_table.table(tot_counter, counter_list, radon_counter)
     #word_table.table_parl_tfidf(tot_counter, counter_list, pck)
+    #word_table.save_word_list(dir_out,"word_list.pck", tot_counter, counter_list)
 
 
 
