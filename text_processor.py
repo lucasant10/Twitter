@@ -54,8 +54,6 @@ class TextProcessor:
         |
         (?:[\w_]+)                     # Words without apostrophes or dashes.
         |
-        (?:\.(?:\s*\.){1,})            # Ellipsis dots. 
-        |
         (?:\S)                         # Everything else that isn't whitespace.
         """
         )
@@ -115,7 +113,10 @@ class TextProcessor:
             raw = self.remover_acentos(raw)
     
             tokens = self.tokenize(raw)
-          
+            
+            #remove os acentos das palavras da stop list
+            self.stoplist = [self.remover_acentos(i) for i in self.stoplist]
+            
             # remove stop words from tokens
             stopped_tokens = [i for i in tokens if not i in self.stoplist]
 
