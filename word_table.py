@@ -72,12 +72,16 @@ class WordTable():
         return n_dep
 
     def table(self, tot_counter, counter_list, radon_counter):
-        out = "Word|Count|n_dep_w|TfIdf|Ratio|Entropy|\n\n"
+        out = "Word|Count|n_dep_w|Ratio|Entropy|\n\n"
         for k,v in tot_counter.items():
             print("processing word: "+k)
-            out += k+"|"+str(v)+"|"+str(np.log2(self.num_word_rep(k,counter_list)))+"|"+str(np.log2(self.tfidf(k,tot_counter,counter_list)))+"|"
-            out += str(np.log2(self.ratio(k,tot_counter,radon_counter)))+"|"+str(self.entropy(k, tot_counter,counter_list ))+"|\n"
-        
+            entrp = self.entropy(k, tot_counter,counter_list )
+            ratio = self.ratio(k,tot_counter,radon_counter)
+            #escolhas de entropia maior que 0 e ratio maior que 1
+            if (entrp > 0) & (ratio > 1):
+                out += k+"|"+str(v)+"|"+str(np.log2(self.num_word_rep(k,counter_list)))+"|"
+                out += str(np.log2(ratio))+"|"+str(entrp)+"|\n"
+            
         print("saving file ...")
         with open(dir_out+"tabela.txt", "w") as f:
          f.write(out)
@@ -109,9 +113,9 @@ class WordTable():
 
 if __name__=='__main__':
 
-    dir_in = "/home/lucasso/Documents/pck/"
-    dir_out = "/home/lucasso/Documents/"
-    file_path = "/home/lucasso/Dropbox/Twitter_Marcelo/Report/plot/Counter_pt-br.pck"
+    dir_in = "/Users/lucasso/Documents/pck/"
+    dir_out = "/Users/lucasso/Documents/"
+    file_path = "/Users/lucasso/Dropbox/Twitter_Marcelo/Report/plot/Counter_pt-br.pck"
     word_table = WordTable()
     tot_counter, counter_list, pck = word_table.read_counters(dir_in)
     radon_counter = word_table.loadCounter(file_path)
