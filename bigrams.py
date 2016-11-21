@@ -44,7 +44,7 @@ if __name__=='__main__':
 	tweets = list(itertools.chain.from_iterable(tweets))
 	word_list = load_words_entropy(dir_ent,"lista_entr_zero.pck")
 	#remover as palavras com entropia 0
-	tweets =[[i for i in t if i in word_list] for t in tweets]
+	tweets = [i for i in tweets if i in word_list]
 	bigram_finder = get_bigrams(tweets)
 	bigram_measures = nltk.collocations.BigramAssocMeasures()
 	print(bigram_finder.nbest(bigram_measures.pmi, 500))
