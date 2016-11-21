@@ -6,6 +6,7 @@ import os
 from text_processor import TextProcessor
 import itertools
 import pickle
+import math
 
 
 class TfIdf():
@@ -14,7 +15,7 @@ class TfIdf():
 
     @staticmethod
     def tf(word, w_counter):
-        return (w_counter[word] / float(sum(w_counter.values())))
+        return (math.log2(w_counter[word] / float(sum(w_counter.values()))))
 
     @staticmethod
     def n_containing( word, doc_counter):
@@ -26,7 +27,33 @@ class TfIdf():
 
     @staticmethod
     def idf( word, doc_counter):
-        return (math.log(len(doc_counter) / float(n_containing(word, doc_counter))))
+        return (math.log2(len(doc_counter) / float(TfIdf.n_containing(word, doc_counter))))
+    
+    @staticmethod
+    def idf_smooth( word, doc_counter):
+        return (math.log2(1+(len(doc_counter) / float(TfIdf.n_containing(word, doc_counter)))))
+    
+    @staticmethod
+    def idf_like( word,parl_counter, tot_counter,doc_counter):
+        return ((1+(math.log2(len(doc_counter))-TfIdf.entropy(word,tot_counter,doc_counter)))*TfIdf.parl_prob(word,parl_counter,doc_counter))
+
+    @staticmethod
+    def entropy( word, tot_counter, doc_counter):
+        print("processing entropy...")
+        ent = 0
+        for counter in doc_counter:
+            prob = counter[word]/tot_counter[word]
+            ent += prob * (-math.log2(prob+1e-100))
+        return ent
+
+    @staticmethod
+    def parl_prob( word, parl_counter, doc_counter):
+        count = 0
+        for document in doc_counter:
+            if document[word] > 0:
+                count += document[word]
+        return (parl_counter[word]/count)
+
 
     @staticmethod
     def tfidf( word, w_counter, doc_counter):
@@ -95,6 +122,7 @@ class TfIdf():
             with open(dir_out+pck[i]+".txt", "w") as f:
              f.write(json.dumps(sort))
              f.close()
+
     def create_table_parl_tfidf():
         counter_list = list()
         tot_counter = Counter()
@@ -111,8 +139,8 @@ class TfIdf():
 
 if __name__=='__main__':
 
-    dir_in = "/Users/lucasso/Documents/tweets_pedro/"
-    dir_out = "/Users/lucasso/Documents/pck/"
+    dir_in = "/home/lucasso/Documents/tweets_pt-Br/"
+    dir_out = "/home/lucasso/Documents/random_pck/"
     ptbr = PtBrTwitter(dir_in,dir_out)
     tfidf = TfIdf()
     tfidf.save_counters(dir_in,dir_out)
