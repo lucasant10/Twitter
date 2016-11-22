@@ -15,7 +15,7 @@ class TfIdf():
 
     @staticmethod
     def tf(word, w_counter):
-        return (math.log2(w_counter[word] / float(sum(w_counter.values()))))
+        return (w_counter[word] / float(sum(w_counter.values())))
 
     @staticmethod
     def n_containing( word, doc_counter):
