@@ -1,17 +1,15 @@
-import math
+# -*- coding: utf-8 -*-
 from collections import Counter
-from PtBrTwitter import PtBrTwitter 
 import json
 import os
 from text_processor import TextProcessor
-import itertools
 import pickle
-import math
 from tfidf import TfIdf
 from scipy import stats
-from itertools import islice
 import matplotlib.pyplot as plt
-
+from wordcloud import WordCloud
+from text_processor import TextProcessor
+import itertools
 
 def loadCounters(dir_in):
     counter_list = list()
@@ -26,13 +24,57 @@ def loadCounters(dir_in):
             counter_list.append(tw_counter)
     return tot_counter,counter_list
 
+def plot_cloud(lista, n, name):
+    sliced = [i for i,v in lista[0:n]]
+    txt=""
+    for i,k in parl_counter.items():
+        if(i in sliced):
+            for a in range(k):
+                txt += " "+i
+    wc = WordCloud().generate(txt)
+    plt.imshow(wc)
+    plt.savefig(dir_out+name+'.png', dpi=300)
+
+def plot_dep_cloud(tw_list,lista, n, name):
+    sliced = [i for i,v in lista[0:n] if i in tw_list]
+    txt=""
+    for i,k in parl_counter.items():
+        if(i in sliced):
+            for a in range(k):
+                txt += " "+i
+    wc = WordCloud().generate(txt)
+    plt.imshow(wc)
+    plt.savefig(dir_out+name+'.png', dpi=300)
+
+def plot_tfidfs(sort_tfidf, sort_tf_log_idf,sort_tfidf_like):
+    plot = list()
+    for i in range(25,10000,25):
+        #retorna os n primeiros elementos do dicionario. entao é computado a correlacao dos valores
+        s1 = stats.spearmanr([i for i,v in sort_tfidf[0:i]] ,[i for i,v in sort_tf_log_idf[0:i]])[0]
+        s2 = stats.spearmanr([i for i,v in sort_tfidf[0:i]],[i for i,v in sort_tfidf_like[0:i]])[0]
+        s3 = stats.spearmanr([i for i,v in sort_tfidf_like[0:i]] , [i for i,v in sort_tf_log_idf[0:i]])[0]
+        plot.append((s1,s2,s3))
+    tf, log, like = zip(*plot)
+    tfidf_colors_label = (
+        (tf,'green','tfidf X tfidf_smooth'),
+        (log,'red','tfidf x tfidf_like'),
+        (tf,'blue','tfidf_like x tfidf_smooth')
+        )
+    for v_tfidf, color, label in tfidf_colors_label:
+        plt.plot(range(25,10000,25), v_tfidf, color=color, label=label)  
+    plt.title('Correlacao de Spearman para as K top tfidf')
+    plt.xlabel('k top tfidf')
+    plt.ylabel('Spearman')
+    plt.legend()
+    plt.savefig(dir_out+'tfidf.png', dpi=300)
+
 
 
 if __name__=='__main__':
 
     dir_in = "/home/lucasso/Documents/random_pck/"
-    dir_out = "/home/lucasso/Documents/"
-    file_parl = "/home/lucasso/Documents/random_pck/deputados.pck"
+    dir_out = "/Users/lucasso/Dropbox/UFMG/Processamento de Linguagem Natural/"
+    file_parl = "/Users/lucasso/Dropbox/UFMG/Processamento de Linguagem Natural/random_pck/deputados.pck"
     tfidf_n = list()
     tf_log_idf = list()
     tfidf_like = list() 
@@ -52,43 +94,65 @@ if __name__=='__main__':
         tfidf_n.append(tf*idf)
         tf_log_idf.append(tf*log_idf)
         tfidf_like.append(tf*ent_idf)
+
+    dic_tfidf= list(zip(parl_counter.keys(), tfidf_n))
+    dic_tf_log_idf= list(zip(parl_counter.keys(), tf_log_idf))
+    dic_tfidf_like= list(zip(parl_counter.keys(), tfidf_like))
 """
-    corr +=  "tfidf X tfidf_smooth: "+str(stats.spearmanr(tfidf_n,tf_log_idf))+"\n"
-    corr +=  "tfidf X tfidf_like: "+str(stats.spearmanr(tfidf_n,tfidf_like))+"\n"
-    corr +=  "tfidf_like X tfidf_smooth: "+str(stats.spearmanr(tfidf_like,tf_log_idf))+"\n"
+corr +=  "tfidf X tfidf_smooth: "+str(stats.spearmanr([v for i,v in dic_tfidf] ,[v for i,v in dic_tf_log_idf]))+"\n"
+corr +=  "tfidf X tfidf_like: "+str(stats.spearmanr([v for i,v in dic_tfidf],[v for i,v in dic_tfidf_like]))+"\n"
+corr +=  "tfidf_like X tfidf_smooth: "+str(stats.spearmanr([v for i,v in dic_tfidf_like] , [v for i,v in dic_tf_log_idf]))+"\n"
 
     corr +=  "tfidf X tfidf_smooth: "+str(stats.pearsonr(tfidf_n,tf_log_idf))+"\n"
     corr +=  "tfidf X tfidf_like: "+str(stats.pearsonr(tfidf_n,tfidf_like))+"\n"
     corr +=  "tfidf_like X tfidf_smooth: "+str(stats.pearsonr(tfidf_like,tf_log_idf))+"\n"
 
-    with open(dir_out+"saida_correlacao2.txt", "w") as f:
-        f.write(corr)
-        f.close()
+with open(dir_out+"saida_correlacao.txt", "w") as f:
+    f.write(corr)
+    f.close()
+
+with open(dir_in+"tf_log_idf.pck", 'rb') as handle:
+    tf_log_idf = pickle.load(handle)
+
+with open(file_parl, 'rb') as handle:
+    parl_counter = pickle.load(handle)
+
 
 """
-    dic_tfidf= dict(zip(parl_counter.keys(), tfidf_n))
-    dic_tf_log_idf= dict(zip(parl_counter.keys(), tf_log_idf))
-    dic_tfidf_like= dict(zip(parl_counter.keys(), tfidf_like))
 
-    dic_tfidf = dict(sorted(dic_tfidf.items(), key=lambda x: x[1], reverse=True))
-    dic_tf_log_idf = dict(sorted(dic_tf_log_idf.items(), key=lambda x: x[1], reverse=True))
-    dic_tfidf_like = dict(sorted(dic_tfidf_like.items(), key=lambda x: x[1], reverse=True))
+sort_tfidf = sorted(dic_tfidf, key=lambda x: x[1], reverse=True)
+sort_tf_log_idf = sorted(dic_tf_log_idf, key=lambda x: x[1], reverse=True)
+sort_tfidf_like = sorted(dic_tfidf_like, key=lambda x: x[1], reverse=True)
 
-    plot = list()
-    for i in range(25,1000,25):
-        #retorna os n primeiros elementos do dicionario. entao é computado a correlacao dos valores
-        s1 = stats.spearmanr(list(dict(islice(dic_tfidf.items(),i)).values()) ,list(dict(islice(dic_tf_log_idf.items(),i)).values()))[0]
-        s2 = stats.spearmanr(list(dict(islice(dic_tfidf.items(),i))),list(dict(islice(dic_tfidf_like.items(),i)).values()))[0]
-        s3 = stats.spearmanr(list(dict(islice(dic_tfidf_like.items(),i)).values()) , list(dict(islice(dic_tf_log_idf.items(),i)).values()))[0]
-        plot.append((s1,s2,s3))
+plot_tfidfs(sort_tfidf, sort_tf_log_idf, sort_tfidf_like)
 
-    for temp in zip(*plot):
-        plt.plot(range(25,1000,25), temp)
+n = 100
+plot_cloud(sort_tfidf,n,"dic_tfidf")
+plot_cloud(sort_tf_log_idf,n,"dic_tf_log_idf")
+plot_cloud(sort_tfidf_like,n,"dic_tfidf_like")
 
-    plt.title('Correlação de Spearman para as K top tfidf')
-    plt.xlabel('k top tfidf')
-    plt.ylabel('Spearman')
-    plt.legend(['tfidf X tfidf_smooth', 'tfidf x tfidf_like', 'tfidf_like x tfidf_smooth'])
+dir_path = "/Users/lucasso/iCloud Drive (Arquivo)/Documents/tweets/"
+tp = TextProcessor()
+tw_files = ([file for root, dirs, files in os.walk(dir_path)
+            for file in files if file.endswith('.json') ])
+
+tw_list = list()
+for tw_file in tw_files:
+    with open(dir_path+tw_file) as data_file:
+        doc_list = list()
+        for line in data_file:
+            tweet = json.loads(line)
+            doc_list.append(tweet['text'])
+    tw_list.append(list(itertools.chain.from_iterable(tp.text_process(doc_list))))
+
+for i in range(len(tw_list)):
+    plot_dep_cloud(tw_list[i],dic_tfidf,n,tw_files[i]+"_dic_tfidf")
+    plot_dep_cloud(tw_list[i],dic_tf_log_idf,n,tw_files[i]+"dep_dic_tf_log_idf")
+    plot_dep_cloud(tw_list[i],dic_tfidf_like,n,tw_files[i]+"dic_tfidf_like")
+
+
+
+
 
 
     
