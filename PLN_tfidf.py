@@ -58,7 +58,7 @@ def plot_tfidfs(sort_tfidf, sort_tf_log_idf,sort_tfidf_like):
     tfidf_colors_label = (
         (tf,'green','tfidf X tfidf_smooth'),
         (log,'red','tfidf x tfidf_like'),
-        (tf,'blue','tfidf_like x tfidf_smooth')
+        (like,'blue','tfidf_like x tfidf_smooth')
         )
     for v_tfidf, color, label in tfidf_colors_label:
         plt.plot(range(25,10000,25), v_tfidf, color=color, label=label)  
@@ -72,32 +72,31 @@ def plot_tfidfs(sort_tfidf, sort_tf_log_idf,sort_tfidf_like):
 
 if __name__=='__main__':
 
-    dir_in = "/home/lucasso/Documents/random_pck/"
-    dir_out = "/Users/lucasso/Dropbox/UFMG/Processamento de Linguagem Natural/"
-    file_parl = "/Users/lucasso/Dropbox/UFMG/Processamento de Linguagem Natural/random_pck/deputados.pck"
-    tfidf_n = list()
-    tf_log_idf = list()
-    tfidf_like = list() 
-    corr = ""
+dir_in = "/home/lucasso/Documents/random_pck/"
+dir_out = "/home/lucasso/Documents/random_pck/"
+file_parl = "/home/lucasso/Documents/random_pck/deputados.pck"
+tfidf_n = list()
+tf_log_idf = list()
+tfidf_like = list() 
+corr = ""
 
-    with open(file_parl, 'rb') as handle:
-        parl_counter = pickle.load(handle)
+with open(file_parl, 'rb') as handle:
+    parl_counter = pickle.load(handle)
 
-    tot_counter,counter_list = loadCounters(dir_in)
-    tfidf = TfIdf()
-    for word in parl_counter:
-        tf = tfidf.tf(word, parl_counter)
-        idf = tfidf.idf(word,counter_list)
-        log_idf = tfidf.idf_smooth(word,counter_list)
-        ent_idf = tfidf.idf_like(word,parl_counter, tot_counter, counter_list)
-        
-        tfidf_n.append(tf*idf)
-        tf_log_idf.append(tf*log_idf)
-        tfidf_like.append(tf*ent_idf)
+tot_counter,counter_list = loadCounters(dir_in)
+tfidf = TfIdf()
+for word in parl_counter:
+    tf = tfidf.tf(word, parl_counter)
+    idf = tfidf.idf(word,counter_list)
+    log_idf = tfidf.idf_smooth(word,counter_list)
+    ent_idf = tfidf.idf_like(word,parl_counter, tot_counter, counter_list)
+    tfidf_n.append(tf*idf)
+    tf_log_idf.append(tf*log_idf)
+    tfidf_like.append(tf*ent_idf)
 
-    dic_tfidf= list(zip(parl_counter.keys(), tfidf_n))
-    dic_tf_log_idf= list(zip(parl_counter.keys(), tf_log_idf))
-    dic_tfidf_like= list(zip(parl_counter.keys(), tfidf_like))
+dic_tfidf= list(zip(parl_counter.keys(), tfidf_n))
+dic_tf_log_idf= list(zip(parl_counter.keys(), tf_log_idf))
+dic_tfidf_like= list(zip(parl_counter.keys(), tfidf_like))
 """
 corr +=  "tfidf X tfidf_smooth: "+str(stats.spearmanr([v for i,v in dic_tfidf] ,[v for i,v in dic_tf_log_idf]))+"\n"
 corr +=  "tfidf X tfidf_like: "+str(stats.spearmanr([v for i,v in dic_tfidf],[v for i,v in dic_tfidf_like]))+"\n"
@@ -111,11 +110,12 @@ with open(dir_out+"saida_correlacao.txt", "w") as f:
     f.write(corr)
     f.close()
 
-with open(dir_in+"tf_log_idf.pck", 'rb') as handle:
-    tf_log_idf = pickle.load(handle)
+with open(dir_in+"dic_tfidf_like.pck", 'rb') as handle:
+    dic_tfidf_like = pickle.load(handle)
 
-with open(file_parl, 'rb') as handle:
-    parl_counter = pickle.load(handle)
+with open(dir_out+"dic_tfidf_like.pck", 'wb') as handle:
+    pickle.dump(dic_tfidf_like, handle)
+
 
 
 """
