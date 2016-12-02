@@ -34,8 +34,9 @@ class TfIdf():
         return (math.log2(1+(len(doc_counter) / float(TfIdf.n_containing(word, doc_counter)))))
     
     @staticmethod
-    def idf_like( word,parl_counter, tot_counter,doc_counter):
-        return ((1+(math.log2(len(doc_counter))-TfIdf.entropy(word,tot_counter,doc_counter)))*TfIdf.parl_prob(word,parl_counter,doc_counter))
+    def idf_like( word,parl_counter, tot_counter,doc_counter, counter_list_parl):
+        return ((1+(math.log2(len(doc_counter))-TfIdf.entropy(word,tot_counter,doc_counter)))
+            *TfIdf.parl_prob(word,parl_counter,doc_counter)*TfIdf.parl_entropy(word, tot_counter, counter_list_parl))
 
     @staticmethod
     def entropy( word, tot_counter, doc_counter):
@@ -134,8 +135,14 @@ class TfIdf():
                 tw_counter = pickle.load(data_file)
                 tot_counter += tw_counter
                 counter_list.append(tw_counter)
-
-            
+    @staticmethod
+    def parl_entropy(word, tot_counter, doc_counter):
+        print("processing entropy...")
+        ent = 0
+        for counter in doc_counter:
+            prob = counter[word]/tot_counter[word]
+            ent += prob * (-math.log2(prob+1e-100))
+        return ent           
 
 if __name__=='__main__':
 
