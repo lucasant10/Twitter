@@ -10,6 +10,26 @@ import matplotlib.pyplot as plt
 from wordcloud import WordCloud
 from text_processor import TextProcessor
 import itertools
+import csv
+
+def save_ranking(dir_out,sort_tfidf, sort_tf_log_idf,sort_tfidf_like):
+    f =  open(dir_out+"ranking_tfidf.csv", 'a+')
+    f.write("tfidf"+";"+"valor"+";"+"tfidf_smooth"+";"+"valor"+";"+"tfidf_like"+";"+"valor"+"\n")
+    for i in range(0,1000):
+        f.write(sort_tfidf[i][0]+";"+str(sort_tfidf[i][1])+";"+
+            sort_tf_log_idf[i][0]+";"+str(sort_tf_log_idf[i][1])+";"+
+            sort_tfidf_like[i][0]+";"+str(sort_tfidf_like[i][1])+"\n")
+    f.close()
+
+def save_tfidf_like(parl_counter,sort_tfidf_like, counter_list,tot_counter,counter_list_parl):
+    dic = dict(sort_tfidf_like)
+    f =  open(dir_out+"tfidf_like_parametros.csv", 'a+')
+    f.write("palavra"+";"+"valor"+";"+"entropia máxima"+";"+"entropia da palvra"+";"+"prob_política"+";"+"Entropia entre deputados"+"\n")
+    for word in parl_counter:
+        f.write(word+";"+str(dic[word])+";"+
+             '{0:f}'.format(math.log2(len(counter_list)))+";"+ '{0:f}'.format(TfIdf.entropy(word,tot_counter,counter_list))+";"+
+             '{0:f}'.format(TfIdf.parl_prob(word,parl_counter,counter_list))+";"+ '{0:f}'.format(TfIdf.parl_entropy(word, tot_counter, counter_list_parl))+"\n")
+    f.close()
 
 def loadCounters(dir_in):
     counter_list = list()
@@ -22,26 +42,38 @@ def loadCounters(dir_in):
             tw_counter = pickle.load(data_file)
             tot_counter += tw_counter
             counter_list.append(tw_counter)
-    return tot_counter,counter_list
+    return tot_counter,counter_list,pck
 
 def plot_cloud(lista, n, name):
-    sliced = [(i,v) for i,v in lista[0:n]]
+    sliced = [i for i,v in lista[0:n]]
     txt=""
-    for i,k in sliced:
-        if(i in parl_counter):
-            for a in range(int(k*10000)):
+    for i,k in parl_counter.items():
+        if(i in sliced):
+            for a in range(k):
                 txt += " "+i
     wc = WordCloud().generate(txt)
     plt.imshow(wc)
     plt.savefig(dir_out+name+'.png', dpi=300)
-    plt.clf()
 
 def plot_dep_cloud(tw_list,lista, n, name):
-    sliced = [(i,v) for i,v in lista[0:n] if i in tw_list]
+    sliced = [i for i,v in lista[0:n] if i in tw_list]
     txt=""
-    for i,k in sliced:
-        if(i in parl_counter):
-            for a in range(int(k*100000)):
+    for i,k in parl_counter.items():
+        if(i in sliced):
+            for a in range(k):
+                txt += " "+i
+    wc = WordCloud().generate(txt)
+    plt.imshow(wc)
+    plt.savefig(dir_out+name+'.png', dpi=300)
+    plt.cfl()
+
+
+def plot_dep_cloud(tw_list,lista, n, name):
+    sliced = [i for i,v in lista[0:n] if i in tw_list]
+    txt=""
+    for i,k in parl_counter.items():
+        if(i in sliced):
+            for a in range(k):
                 txt += " "+i
     wc = WordCloud().generate(txt)
     plt.imshow(wc)
@@ -85,7 +117,7 @@ def plot_tfidfs(sort_tfidf, sort_tf_log_idf,sort_tfidf_like):
         (like,'blue','tfidf_like x tfidf_smooth')
         )
     for v_tfidf, color, label in tfidf_colors_label:
-        plt.plot(range(1,10000,25), v_tfidf, color=color, label=label)  
+        plt.plot(range(25,10000,25), v_tfidf, color=color, label=label)  
     plt.title('Correlacao de Spearman para as K top tfidf')
     plt.xlabel('k top tfidf')
     plt.ylabel('Spearman')
@@ -109,8 +141,8 @@ corr = ""
 with open(file_parl, 'rb') as handle:
     parl_counter = pickle.load(handle)
 
-tot_counter,counter_list = loadCounters(dir_in)
-tot_counter_dep,counter_list_dep= loadCounters(dir_parl)
+tot_counter,counter_list,_ = loadCounters(dir_in)
+tot_counter_dep,counter_list_dep,pck= loadCounters(dir_parl)
 tfidf = TfIdf()
 for word in parl_counter:
     tf = tfidf.tf(word, parl_counter)
@@ -178,8 +210,37 @@ for i in range(len(tw_list)):
     plot_dep_cloud(tw_list[i],sort_tf_log_idf,n,tw_files[i]+"dep_dic_tf_log_idf")
     plot_dep_cloud(tw_list[i],sort_tfidf_like,n,tw_files[i]+"dic_tfidf_like")
 
+#Gera o cvs dos rankings
+save_ranking(dir_out, sort_tfidf, sort_tf_log_idf, sort_tfidf_like)
 
+#Gera a tabela do tfidf_like e seus parametros
+save_tfidf_like(parl_counter, sort_tfidf_like, counter_list, tot_counter,counter_list_dep)
 
+#Gerar o ranking das palavras e cada parlamanentar
+dic_political = dict(dic_tfidf_like)
+tfidf = TfIdf()
+ranking_parl_words = list()
+for dep_counter in counter_list_dep:
+    w_relevance = list()
+    for word in dep_counter:
+        tf = tfidf.tf(word, dep_counter)
+        idf_smooth = tfidf.idf_smooth(word, counter_list_dep) 
+        tfidf_political = dic_political[word]
+        w_relevance.append((word,tf*idf*tfidf_political))
+    ranking_parl_words.append(sorted(w_relevance, key=lambda x: x[1], reverse=True)[:1000])# pega as 1000 mais relevantes
+
+#cria o ranking das palavras ordenadas
+ranking_words = list()
+for l in ranking_parl_words:
+    ranking_words.append([i for i,v in l])
+
+#salva o csv do ranking das palavras para cada deputado
+header =[i.split('.')[0] for i in pck]
+with open (dir_out+"ranking_deputado_palavras.csv", 'w') as csvfile :
+     writer=csv.writer(csvfile,delimiter=';',lineterminator='\n')
+     writer.writerow(header)
+     writer.writerows(itertools.zip_longest(*ranking_words));
+     csvfile.close()
 
 
 

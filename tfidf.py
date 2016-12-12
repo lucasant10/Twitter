@@ -6,7 +6,6 @@ import os
 from text_processor import TextProcessor
 import itertools
 import pickle
-import math
 
 
 class TfIdf():
