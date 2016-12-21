@@ -11,9 +11,10 @@ from wordcloud import WordCloud
 from text_processor import TextProcessor
 import itertools
 import csv
+import math
 
 def save_ranking(dir_out,sort_tfidf, sort_tf_log_idf,sort_tfidf_like):
-    f =  open(dir_out+"ranking_tfidf.csv", 'a+')
+    f =  open(dir_out+"ranking_tfidf.csv", 'w')
     f.write("tfidf"+";"+"valor"+";"+"tfidf_smooth"+";"+"valor"+";"+"tfidf_like"+";"+"valor"+"\n")
     for i in range(0,1000):
         f.write(sort_tfidf[i][0]+";"+str(sort_tfidf[i][1])+";"+
@@ -23,12 +24,12 @@ def save_ranking(dir_out,sort_tfidf, sort_tf_log_idf,sort_tfidf_like):
 
 def save_tfidf_like(parl_counter,sort_tfidf_like, counter_list,tot_counter,counter_list_parl):
     dic = dict(sort_tfidf_like)
-    f =  open(dir_out+"tfidf_like_parametros.csv", 'a+')
-    f.write("palavra"+";"+"valor"+";"+"entropia máxima"+";"+"entropia da palvra"+";"+"prob_política"+";"+"Entropia entre deputados"+"\n")
+    f =  open(dir_out+"tfidf_like_parametros.csv", 'w')
+    f.write("palavra"+";"+"valor"+";"+"frequencia"+";"+"entropia maxima"+";"+"entropia da palvra"+";"+"prob_politica"+";"+"entropia entre deputados"+"\n")
     for word in parl_counter:
-        f.write(word+";"+str(dic[word])+";"+
-             '{0:f}'.format(math.log2(len(counter_list)))+";"+ '{0:f}'.format(TfIdf.entropy(word,tot_counter,counter_list))+";"+
-             '{0:f}'.format(TfIdf.parl_prob(word,parl_counter,counter_list))+";"+ '{0:f}'.format(TfIdf.parl_entropy(word, tot_counter, counter_list_parl))+"\n")
+        f.write(word+";"+str(dic[word])+";"+ '%.4f'%(TfIdf.tf(word,parl_counter))+";"+
+             '%.4f'%(math.log2(len(counter_list)))+";"+ '%.4f'%(TfIdf.entropy(word,tot_counter,counter_list))+";"+
+             '%.4f'%(TfIdf.parl_prob(word,parl_counter,counter_list))+";"+ '%.4f'%(TfIdf.parl_entropy(word, tot_counter, counter_list_parl))+"\n")
     f.close()
 
 def loadCounters(dir_in):
@@ -170,8 +171,8 @@ with open(dir_out+"saida_correlacao.txt", "w") as f:
     f.write(corr)
     f.close()
 
-with open(dir_in+"dic_tfidf_like.pck", 'rb') as handle:
-    dic_tfidf_like = pickle.load(handle)
+with open(dir_in+"dic_tf_log_idf.pck", 'rb') as handle:
+    dic_tf_log_idf = pickle.load(handle)
 
 with open(dir_out+"dic_tfidf.pck", 'wb') as handle:
     pickle.dump(dic_tfidf, handle)
@@ -197,6 +198,7 @@ tw_files = ([file for root, dirs, files in os.walk(dir_path)
             for file in files if file.endswith('.json') ])
 
 tw_list = list()
+tweets = list()
 for tw_file in tw_files:
     with open(dir_path+tw_file) as data_file:
         doc_list = list()
@@ -215,6 +217,7 @@ save_ranking(dir_out, sort_tfidf, sort_tf_log_idf, sort_tfidf_like)
 
 #Gera a tabela do tfidf_like e seus parametros
 save_tfidf_like(parl_counter, sort_tfidf_like, counter_list, tot_counter,counter_list_dep)
+#comando linux para trocar . por ,: tr '.' ',' < arquivo_in > arquivo_out
 
 #Gerar o ranking das palavras e cada parlamanentar
 dic_political = dict(dic_tfidf_like)
@@ -226,7 +229,7 @@ for dep_counter in counter_list_dep:
         tf = tfidf.tf(word, dep_counter)
         idf_smooth = tfidf.idf_smooth(word, counter_list_dep) 
         tfidf_political = dic_political[word]
-        w_relevance.append((word,tf*idf*tfidf_political))
+        w_relevance.append((word,tf*idf_smooth*tfidf_political))
     ranking_parl_words.append(sorted(w_relevance, key=lambda x: x[1], reverse=True)[:1000])# pega as 1000 mais relevantes
 
 #cria o ranking das palavras ordenadas
@@ -241,6 +244,14 @@ with open (dir_out+"ranking_deputado_palavras.csv", 'w') as csvfile :
      writer.writerow(header)
      writer.writerows(itertools.zip_longest(*ranking_words));
      csvfile.close()
+
+f =  open(dir_out+"teste.csv", 'w')
+s = '%.4f ' % (math.log2(len(counter_list)))
+v = math.log2(len(counter_list))
+b = '{0:f}'.format(math.log2(len(counter_list)))
+f.write(str(v)+"\n"+str(s)+"\n"+str(b))
+f.close()
+   
 
 
 

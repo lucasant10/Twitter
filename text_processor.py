@@ -98,7 +98,7 @@ class TextProcessor:
         plt.imshow(wc)
         plt.savefig(dir_out+name+'.png', dpi=300)
 
-    def text_process(self,doc_set, stem=False):
+    def text_process(self,doc_set, stem=False, text_only=False):
         # list for tokenized documents in loop
         texts = []
         # loop through document list
@@ -126,6 +126,9 @@ class TextProcessor:
             if stem:
                 # stem tokens
                 stopped_tokens = [self.p_stemmer.stem(i) for i in stopped_tokens]
+            if text_only:
+                # remove mentions and hashtags
+                stopped_tokens = [term for term in stopped_tokens if not term.startswith(('#', '@'))]
             
             # add tokens to list
             texts.append(stopped_tokens)
