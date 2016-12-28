@@ -8,8 +8,15 @@ import json
 import itertools
 import pickle
 from tfidf import TfIdf
-import ConfigParser
+import configparser
+from collections import Counter
 
+
+
+def replace_ngram(ngram,sentence):
+    word = " ".join(ngram)
+    word_r = "_".join(ngram)
+    return sentence.replace(word,word_r)
 
 
 def load_files(dir_in):
@@ -27,7 +34,6 @@ def load_files(dir_in):
         parl_tw_list.append(temp)
     return doc_list, parl_tw_list 
 
-['oi', 'fim', 'semana', 'amigos', 'oi']
 def trigram_word_check(p1,p2,p3, tw_list):
     tri = "_".join([p1,p2,p3])
     new_list = list()
@@ -53,7 +59,7 @@ def trigram_word_check(p1,p2,p3, tw_list):
 
 if __name__=='__main__':
 
-cf = ConfigParser.ConfigParser()
+cf = configparser.ConfigParser()
 cf.read("file_path.properties")
 path = dict(cf.items("file_path"))
 dir_in = path['dir_in']
@@ -84,21 +90,20 @@ with open(dir_out+"bgr_tfidf_like.pck",'rb') as handle:
 with open(dir_out+"tri_tfidf_like.pck",'rb') as handle:
     parl_trigrams = pickle.load(handle)
 
-dic_tri = dict(parl_trigrams[:3000])
-dic_bgr = dict(parl_bigrams[:10000])
+tri_list = dict(parl_trigrams[:3000]).keys()
+bgr_list = dict(parl_bigrams[:10000]).keys()
 
 parl_tweets = list()
 for parl in parl_tw_processed:
     for i,tw in enumerate(parl):
+        print("palavra # :"+str(i))
         s = " ".join(tw)
-        for p1,p2,p3 in dic_tri.keys():    
-            tri_w = " ".join([p1,p2,p3])
-            tri = "_".join([p1,p2,p3])
-            s = s.replace(tri_w, tri)
-        for w1,w2 in dic_bgr.keys():
-            bgr_w = " ".join([w1,w2])
-            bgr = "_".join([w1,w2])
-            s = s.replace(bgr_w, bgr)
+        for trigram in tri_list:    
+            s = replace_ngram(trigram, s)
+        print("saiu trigrama")
+        for bigram in bgr_list:
+            s = replace_ngram(bigram,s)
+        print("saiu bigrama")
         parl[i] = s.split(" ")
     parl_tweets.append(parl)
 
@@ -106,19 +111,40 @@ for parl in parl_tw_processed:
 alea_tweets = list()
 for alea in alea_tw_processed:
     for i,tw in enumerate(alea):
+        print("palavra # :"+str(i))
         s = " ".join(tw)
-        for p1,p2,p3 in dic_tri.keys():    
-            tri_w = " ".join([p1,p2,p3])
-            tri = "_".join([p1,p2,p3])
-            s = s.replace(tri_w, tri)
-        for w1,w2 in dic_bgr.keys():
-            bgr_w = " ".join([w1,w2])
-            bgr = "_".join([w1,w2])
-            s = s.replace(bgr_w, bgr)
+        for trigram in tri_list:    
+            s = replace_ngram(trigram, s)
+        print("saiu trigrama")
+        for bigram in bgr_list:
+            s = replace_ngram(bigram,s)
+        print("saiu bigrama")
         alea[i] = s.split(" ")
     alea_tweets.append(alea)
 
-with open(dir_out+"list_parl_tw_bi_trigrams.pck", 'wb') as handle:
-    pickle.dump(parl_tweets, handle)
 
+tweets = list(itertools.chain.from_iterable(list(itertools.chain.from_iterable(parl_tweets))))
+tot_counter = Counter(tweets)
+
+docs_counter = list()
+for alea_tw in alea_tweets:
+    tw = list(itertools.chain.from_iterable(alea_tw))
+    docs_counter.append(Counter(tw))
+docs_counter.append(tot_counter)
+
+parl_counters = list()
+for parl in parl_tweets:
+    tw = list(itertools.chain.from_iterable(parl))
+    parl_counters.append(Counter(tw))
+
+tfidf = TfIdf()
+tfidf_like_bi_trigrams = list()
+for word in tot_counter:
+    tfidf_like_bi_trigrams.append(tfidf.tf(word,tot_counter)*tfidf.idf_like(word,tot_counter,tot_counter,docs_counter, parl_counters))
+
+sort_tfidf_like = list(zip(tot_counter.keys(), tfidf_like_bi_trigrams))
+sort_tfidf_like = sorted(sort_tfidf_like, key=lambda x: x[1], reverse=True)
+
+with open(dir_out+"tfidf_like_bi_trigrams.pck", 'wb') as handle:
+    pickle.dump(tfidf_like_bi_trigrams, handle)
 
