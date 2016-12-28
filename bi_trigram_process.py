@@ -1,7 +1,6 @@
 import nltk
 from nltk.collocations import *
 import os
-import pickle
 import numpy as np
 from text_processor import TextProcessor
 import json
@@ -10,14 +9,14 @@ import pickle
 from tfidf import TfIdf
 import configparser
 from collections import Counter
-
+import re
 
 
 def replace_ngram(ngram,sentence):
-    word = " ".join(ngram)
+    word =" ".join(ngram)
     word_r = "_".join(ngram)
-    return sentence.replace(word,word_r)
-
+    s = re.sub(r'\b%s\b' % word,word_r,sentence)
+    return s
 
 def load_files(dir_in):
     doc_list=list()
@@ -145,6 +144,9 @@ for word in tot_counter:
 sort_tfidf_like = list(zip(tot_counter.keys(), tfidf_like_bi_trigrams))
 sort_tfidf_like = sorted(sort_tfidf_like, key=lambda x: x[1], reverse=True)
 
-with open(dir_out+"tfidf_like_bi_trigrams.pck", 'wb') as handle:
-    pickle.dump(tfidf_like_bi_trigrams, handle)
+with open(dir_out+"sort_tfidf_like_bi_trigram.pck", 'wb') as handle:
+    pickle.dump(sort_tfidf_like, handle)
+
+
+
 
