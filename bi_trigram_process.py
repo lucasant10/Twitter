@@ -64,6 +64,7 @@ path = dict(cf.items("file_path"))
 dir_in = path['dir_in']
 dir_out = path['dir_out']
 dir_ale = path['dir_ale']
+dir_pck = path['dir_pck']
 
 
 doc_list, parl_tw_list = load_files(dir_in)

@@ -6,6 +6,8 @@ import os
 from text_processor import TextProcessor
 import itertools
 import pickle
+from scipy.stats import beta,expon
+
 
 
 class TfIdf():
@@ -34,8 +36,11 @@ class TfIdf():
     
     @staticmethod
     def idf_like( word,parl_counter, tot_counter,doc_counter, counter_list_parl):
-        return ((1+(math.log2(len(doc_counter))-TfIdf.entropy(word,tot_counter,doc_counter)))
-            *TfIdf.parl_prob(word,parl_counter,doc_counter)*TfIdf.parl_entropy(word, tot_counter, counter_list_parl))
+        h_max = math.log2(len(doc_counter))
+        h_word = TfIdf.entropy(word,tot_counter,doc_counter)
+        x = math.pow(2,h_word)/math.pow(2,h_max)
+        return ((1+(h_max-h_word))
+            *TfIdf.parl_prob(word,parl_counter,doc_counter)*beta.pdf(x,8.25,22.77))
 
     @staticmethod
     def entropy( word, tot_counter, doc_counter):

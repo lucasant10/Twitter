@@ -5,6 +5,7 @@ import pickle
 from text_processor import TextProcessor
 import json
 from tfidf import TfIdf
+import configparser
 
 def add_separator(tweets):
     separator_word = "STOP"
@@ -15,21 +16,19 @@ def add_separator(tweets):
     return tweet_words
 
 def load_words_entropy(dir_in, file_name):
-	with open(dir_in+file_name, 'rb') as handle:
+    with open(dir_in+file_name, 'rb') as handle:
             word_list = pickle.load(handle)
             return word_list
 
 
-def get_bigrams(tokens, fq_filter=False):
-    tokens = [term for term in tokens if not term.startswith(('#', '@'))]
+def get_bigrams(tokens, n, fq_filter=False):
     bigram_finder = BigramCollocationFinder.from_words(tokens)
     bigram_finder.apply_ngram_filter(is_separator_bigram)
     if fq_filter:
-        bigram_finder.apply_freq_filter(3)   
+        bigram_finder.apply_freq_filter(n)   
     return bigram_finder
 
 def get_trigrams(tokens, n, fq_filter=False):
-    tokens = [term for term in tokens if not term.startswith(('#', '@'))]
     finder = TrigramCollocationFinder.from_words(tokens)
     finder.apply_ngram_filter(is_separator_trigram)
     if fq_filter:
@@ -66,32 +65,49 @@ def is_separator_trigram(w1,w2,w3):
 
 if __name__=='__main__':
 
-    dir_in = "/Users/lucasso/Documents/tweets_pedro/"
-    dir_ent = "/Users/lucasso/Documents/"
-    dir_out = "/Users/lucasso/Documents/"
-    dir_ale = "/Users/lucasso/Documents/coleta/"
+    cf = configparser.ConfigParser()
+    cf.read("file_path.properties")
+    path = dict(cf.items("file_path"))
+    dir_in = path['dir_in']
+    dir_out = path['dir_out']
+    dir_ale = path['dir_ale']
+    dir_pck = path['dir_pck']
 
     doc_list, parl_tw_list = load_files(dir_in)
     _ ,list_aleatory = load_files(dir_ale)
 
     tp = TextProcessor()
-    tweets = tp.text_process(doc_list)
+    tweets = tp.text_process(doc_list,text_only=True)
     tw_words = add_separator(tweets)
-    parl_bigrams = get_bigrams(tw_words,True)
+    parl_bigrams = get_bigrams(tw_words,3,True)
 
     #processa os tweets de cada deputado
     parl_processed = list()
+    parl_tri_processed = list()
     for l in parl_tw_list:
-        temp = add_separator(tp.text_process(l))
-        temp = get_bigrams(temp)
-        parl_processed.append(temp)
+        temp = add_separator(tp.text_process(l,text_only=True))
+        parl_tri_processed.append(get_trigrams(temp, 3, True))
+        parl_processed.append(get_bigrams(temp,3,True))
+
+    with open(dir_out+"list_dept_bigrams_.pck", 'wb') as handle:
+        pickle.dump(parl_processed, handle)
+    with open(dir_out+"list_dept_trigrams_.pck", 'wb') as handle:
+        pickle.dump(parl_tri_processed, handle)
 
     #processa os bigramas dos tweets dos documentos aleatorios
     alea_processed = list()
+    alea_tri_processed = list()
     for l in list_aleatory:
-        temp = add_separator(tp.text_process(l))
-        temp = get_bigrams(temp)
-        alea_processed.append(temp)
+        temp = add_separator(tp.text_process(l,text_only=True))
+        alea_tri_processed.append(get_trigrams(temp, 3,True))
+        alea_processed.append(get_bigrams(temp,3,True))
+
+    with open(dir_out+"list_alea_bigrams.pck", 'wb') as handle:
+        pickle.dump(alea_processed, handle)
+    with open(dir_out+"list_alea_trigrams.pck", 'wb') as handle:
+        pickle.dump(alea_tri_processed, handle)
+
+    
 
     bgr_counter = parl_bigrams.ngram_fd
     parl_bgr_counter = [l.ngram_fd for l in parl_processed]
@@ -108,36 +124,37 @@ if __name__=='__main__':
     dic_tfidf_smooth = sorted(dic_tfidf_smooth, key=lambda x: x[1], reverse=True)
 
     tot_counter = dict()
-    for i in docs_bgr_counter:
-        tot_counter.update(i)
+    for y in docs_bgr_counter:
+        for k in y.keys(): tot_counter[k] = k in tot_counter and tot_counter[k]+y[k] or y[k]
 
-    tfidf_like = list()
-    for bgr in bgr_counter:
-        tfidf_like.append(tfidf.tf(bgr,bgr_counter)*tfidf.idf_like(bgr,bgr_counter,tot_counter,docs_bgr_counter, parl_bgr_counter))
+tfidf_like = list()
+for bgr in bgr_counter:
+    tfidf_like.append(tfidf.tf(bgr,bgr_counter)*tfidf.idf_like(bgr,bgr_counter,tot_counter,docs_bgr_counter, parl_bgr_counter))
 
-    dic_tfidf_like = list(zip(bgr_counter.keys(), tfidf_like))
-    dic_tfidf_like = sorted(dic_tfidf_like, key=lambda x: x[1], reverse=True)
+dic_tfidf_like = list(zip(bgr_counter.keys(), tfidf_like))
+dic_tfidf_like = sorted(dic_tfidf_like, key=lambda x: x[1], reverse=True)
 
 
     #processa os trigramas dos tweets dos documentos aleatorios
     alea_tri_processed = list()
     for l in list_aleatory:
-        temp = add_separator(tp.text_process(l))
+        temp = add_separator(tp.text_process(l,text_only=True))
         temp = get_trigrams(temp,2,True)
         alea_tri_processed.append(temp)
+    with open(dir_out+"list_alea_trigrams.pck", 'wb') as handle:
+        pickle.dump(alea_tri_processed, handle)
 
-    with open(dir_out+"alea_tri_processed.pck", 'rb') as handle:
-        alea_tri_processed = pickle.load(handle)
-    tw_words = add_separator(tweets)
-    parl_trigrams = get_trigrams(tw_words,3,True)
 
     _ , parl_tw_list = load_files(dir_in)
     #processa os trigramas dos tweets de cada deputado
     parl_tri_processed = list()
     for l in parl_tw_list:
-        temp = add_separator(tp.text_process(l))
-        temp = get_trigrams(temp,1,True)
+        temp = add_separator(tp.text_process(l,text_only=True))
+        temp = get_trigrams(temp,3,True)
         parl_tri_processed.append(temp)
+    with open(dir_out+"list_parl_trigrams.pck", 'wb') as handle:
+        pickle.dump(parl_tri_processed, handle)
+
 
     tri_counter = parl_trigrams.ngram_fd
     parl_tri_counter = [l.ngram_fd for l in parl_tri_processed]
@@ -146,8 +163,8 @@ if __name__=='__main__':
 
 
     tot_counter = dict()
-    for i in docs_tri_counter:
-        tot_counter.update(i)
+    for y in docs_tri_counter:
+        for k in y.keys(): tot_counter[k] = k in tot_counter and tot_counter[k]+y[k] or y[k]
 
 
     tfidf_like_tri = list()
@@ -158,12 +175,34 @@ if __name__=='__main__':
     tri_tfidf_like = sorted(tri_tfidf_like, key=lambda x: x[1], reverse=True)
 
 
-    
+#processa os tweets de cada deputado
+parl_processed = list()
+for parl in parl_tw_processed:
+    temp = add_separator(parl)
+    temp = get_bigrams(temp,True)
+    parl_processed.append(temp)
+
+with open(dir_rob+"bigram_tfidf_like.pck", 'wb') as handle:
+    pickle.dump(dic_tfidf_like, handle)
 
 
+parl_bigrams = list(itertools.chain.from_iterable(parl_tw_processed))
+
+bgr_counter = dict()
+for i in parl_processed:
+   bgr_counter.update(i.ngram_fd)
+
+with open(dir_out+"list_alea_bigrams.pck",'rb') as handle:
+    alea_processed = pickle.load(handle)
 
 
+f =  open(dir_rob+"10k_bigram_tfidf_like.txt", 'w')
+for w,i in dic_tfidf_like[:10000]:
+    f.write("_".join(w)+","+str(i)+" \n")
+
+f.close()
 
 
-
-
+bgr_counter = {}
+for y in parl_bgr_counter:
+    for k in y.keys(): bgr_counter[k] = k in bgr_counter and bgr_counter[k]+y[k] or y[k]
