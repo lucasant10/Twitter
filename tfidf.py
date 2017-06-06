@@ -33,13 +33,20 @@ class TfIdf():
     @staticmethod
     def idf_smooth( word, doc_counter):
         return (math.log2(1+(len(doc_counter) / float(TfIdf.n_containing(word, doc_counter)))))
-    
+
     @staticmethod
     def idf_like( word,parl_counter, tot_counter,doc_counter, counter_list_parl):
         h_max = math.log2(len(doc_counter))
         h_word = TfIdf.entropy(word,tot_counter,doc_counter)
+        return ((h_max-h_word)
+            *TfIdf.parl_prob(word,parl_counter,doc_counter)*TfIdf.parl_entropy(word, tot_counter, counter_list_parl))
+    
+    @staticmethod
+    def idf_beta( word,parl_counter, tot_counter,doc_counter, counter_list_parl):
+        h_max = math.log2(len(doc_counter))
+        h_word = TfIdf.entropy(word,tot_counter,doc_counter)
         x = math.pow(2,h_word)/math.pow(2,h_max)
-        return ((1+(h_max-h_word))
+        return ((h_max-h_word)
             *TfIdf.parl_prob(word,parl_counter,doc_counter)*beta.pdf(x,8.25,22.77))
 
     @staticmethod

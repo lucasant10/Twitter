@@ -63,7 +63,6 @@ class TextProcessor:
         
 
     stoplist  = stopwords.words("portuguese")+['del','bom','via','nova','agora','boa','aqui', 'foto']
-    #stoplist = get_stop_words('portuguese')
 
     # Create p_stemmer of class PorterStemmer
     p_stemmer = SnowballStemmer("portuguese")
@@ -98,7 +97,7 @@ class TextProcessor:
         plt.imshow(wc)
         plt.savefig(dir_out+name+'.png', dpi=300)
 
-    def text_process(self,doc_set, stem=False, text_only=False):
+    def text_process(self,doc_set, stem=False, text_only=False, lang = "portuguese"):
         # list for tokenized documents in loop
         texts = []
         # loop through document list
@@ -114,9 +113,13 @@ class TextProcessor:
     
             tokens = self.tokenize(raw)
             
+            if lang == "english" :
+                self.stoplist  = stopwords.words("english")
+                self.p_stemmer = SnowballStemmer("english")
+
+            
             #remove os acentos das palavras da stop list
             self.stoplist = [self.remover_acentos(i) for i in self.stoplist]
-            
             # remove stop words from tokens
             stopped_tokens = [i for i in tokens if not i in self.stoplist]
 
