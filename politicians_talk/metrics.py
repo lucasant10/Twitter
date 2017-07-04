@@ -42,6 +42,13 @@ def features(w, dic_tweets):
             features |= set(v.keys())
     return features
 
+def ranked_features(w, party, dic_tweets):
+    features = set()
+    party_week = party + "_" + str(w)
+    if party_week in dic_tweets:
+        features |= set(sorted(v, key=v.get, reverse=True))
+    return features
+
 def vector_features(w, features, parties, dic_tweets):
     vec = dict()
     for ft in features:
@@ -84,6 +91,18 @@ def cultural_focus(w, features, parties, dic_tweets):
             tmp[party] = 0
     return tmp
 
+def cultural_reproduction(w, f_week_1, f_week_2, p):
+    d = min(len(f_week_1) , len(f_week_2))
+    s = 0
+    for i in range(1, d + 1):
+        inter = set(f_week_1[:i]).intersection(f_week_2[:i])
+        s += (2 * len(inter) / len(f_week_1[:i]) + len(f_week_1[:i])) * math.pow(p, (i - 1))
+    return (1 - p) * s
+
+def c_reproduction(w, party, dic_tweets):
+    f_week_1 = ranked_features(w, party, dic_tweets)  
+    f_week_2 = ranked_features(w+1, party, dic_tweets)
+    return cultural_reproduction(w, f_week_1, f_week_2 , p)    
 
 if __name__ == '__main__':
     cf = configparser.ConfigParser()
@@ -171,40 +190,17 @@ if __name__ == '__main__':
         weeks_r_sim[w] = similarity(w, r_features, dep_party.keys(), retweets)
         weeks_r_cf[w] = cultural_focus(w, features, dep_party.keys(), retweets)
 
+    p = 0.9
+    party_h_cr = dict()
+    party_m_cr = dict()
+    party_r_cr = dict()
+    for w in range(1, weeks):
+        for party in dep_party.keys():
+            party_week = party + "_" + str(w)
+            party_h_cr[party_week] = c_reproduction(w, party, hashtags)
+            party_m_cr[party_week] = c_reproduction(w, party, mentions)
+            party_r_cr[party_week] = c_reproduction(w, party, hashtags)
+            
 
-    hashtag_set = set()
-    mention_set = set()
-    retweet_set = set()
+   
 
-    for party_week in hashtags.keys():
-        hashtag_set |= set(hashtags[party_week].keys())
-        mention_set |= set(mentions[party_week].keys())
-        retweet_set |= set(retweets[party_week].keys())
-    features = hashtag_set
-    features |= mention_set
-    features |= retweet_set
-    party_h_vec = dict()
-    party_m_vec = dict()
-    party_r_vec = dict()
-
-    for ft in features:
-        for party_week in hashtags.keys():
-            party = party_week.split("_")[0]
-            if party in party_h_vec:
-                party_h_vec[party].append(hashtags[party_week][ft])
-                party_m_vec[party].append(mentions[party_week][ft])
-                party_r_vec[party].append(retweets[party_week][ft])
-            else:
-                party_h_vec[party] = [hashtags[party_week][ft]]
-                party_m_vec[party] = [mentions[party_week][ft]]
-                party_r_vec[party] = [retweets[party_week][ft]]
-
-    cult_sim_h = dict()
-    cult_sim_m = dict()
-    cult_sim_r = dict()
-
-
-
-#hashtags_list = sorted(list(hashtags.items()), key = lambda x: x[0].split("_")[1])
-    #mentions_list = sorted(list(mentions.items()), key = lambda x: x[0].split("_")[1])
-    #retweets_list = sorted(list(retweets.items()), key = lambda x: x[0].split("_")[1])
