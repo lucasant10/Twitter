@@ -83,16 +83,6 @@ for t in texts:
     assing_topics.append(tw_topics.index(max(tw_topics)))
     dist_topics.append([round(x / sum(tw_topics), 2) for x in tw_topics])
 
-
-tsne = manifold.TSNE(n_components=2, random_state=0)
-Y = tsne.fit_transform(vectors)
-plt.clf()
-plt.scatter(Y[:, 0], Y[:, 1], c=np.random.rand(3, 4), cmap=plt.cm.Spectral)
-for label, x, y in zip(list(range(len(pz))), Y[:, 0], Y[:, 1]):
-    plt.annotate(label, xy=(x, y), xytext=(0, 0), textcoords='offset points')
-
-plt.show()
-
 wntm = list()
 tw = open(dir_in + "tweets.txt", "r")
 for l in tw:

@@ -38,29 +38,14 @@ if __name__ == '__main__':
     with open(dir_out + "sanders_twitter.pck", 'wb') as handle:
         pickle.dump(txt, handle)
 
-    train = txt[:int(len(txt) * 0.7)]
-    test = txt[int(len(txt) * 0.7):]
-    f = open(dir_out + "sanders_twitter_train.txt", 'w')
-    for l in train:
+    f = open(dir_out + "sanders_twitter.txt", 'w')
+    for l in txt:
         f.write(" ".join(l) + "\n")
 
     f.close
 
-    f = open(dir_out + "sanders_twitter_test.txt", 'w')
-    for l in test:
-        f.write(" ".join(l) + "\n")
-
-    f.close
-
-    train = topic[:int(len(topic) * 0.7)]
-    test = topic[int(len(topic) * 0.7):]
-    f = open(dir_out + "topic_sanders_twitter_train.txt", 'w')
-    for t in train:
+    f = open(dir_out + "topic_sanders_twitter.txt", 'w')
+    for t in topic:
         f.write(t + "\n")
 
     f.close
-
-f = open(dir_out + "topic_sanders_twitter_test.txt", 'w')
-for item in test:
-  f.write("%s\n" % item)
-f.close()

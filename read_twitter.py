@@ -112,4 +112,21 @@ class ReadTwitter:
     def create_dic(self, fnames):
         for fname in fnames:
             self.rep_dic[fname.split('_',1)[0]] = fname
-                       
+
+    def id_screenname_party_from_xls(self):
+        xls = xlrd.open_workbook(self.excel_path)
+        sheet = xls.sheet_by_name(self.sheet_name)
+        id_screenname_party = list()
+        for i in range(sheet.nrows):
+            id_screenname_party.append((int(sheet.cell_value(rowx= i, colx=4)),str(sheet.cell_value(rowx= i, colx=3)),str(sheet.cell_value(rowx=i, colx=1))))
+        return id_screenname_party
+
+    def party_from_xls(self):
+        xls = xlrd.open_workbook(self.excel_path)
+        sheet = xls.sheet_by_name(self.sheet_name)
+        party = list()
+        id_rep = list()
+        for i in range(sheet.nrows):
+            party.append(str(sheet.cell_value(rowx= i, colx=1)))
+            id_rep.append(str(int(sheet.cell_value(rowx= i, colx=self.col))))
+        return (id_rep,party)
