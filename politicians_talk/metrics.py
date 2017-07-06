@@ -7,7 +7,6 @@ import re
 from read_twitter import ReadTwitter
 from collections import Counter
 import math, datetime
-import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 import math
@@ -168,9 +167,9 @@ def party_burstiness(features, weeks, party, dic_tweets):
             else:
                 qtd_r.append(0)
                 qtd_d.append(0)
-        n = sum(qtd_r)
-        r = np.asarray(qtd_r)
-        d = np.asarray(qtd_d)
+        r = np.array(qtd_r)
+        d = np.array(qtd_d)
+        n = len(r)
         q, d, r, p = bt.burst_detection(r, d, n, 2, 1, 2)
         bursts = bt.enumerate_bursts(q, 'burstLabel')
         b_index[f] = bursts
