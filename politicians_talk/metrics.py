@@ -249,17 +249,34 @@ def plot_reproduction(parties, weeks, dic_tweets, dic_color, f_name):
                 name = party,
                 line = dict(color = dic_color[party]),
                 opacity = 0.8))
-        data.append(
-            go.Scatter(
-                y = 1,
-                x = 53,
-                mode = "lines",
-                line = dict(width = 2, color = "#000000"),
-                opacity = 0.8)
+        data.append(go.Scatter(
+            x=[53, 53],
+            y=[0, 1],
+            mode="lines",
+            line=go.Line(color="#111111", width=2),
+            showlegend=False
+        )
         )
 
         layout = go.Layout(
             title = f_name.split("/")[-1],
+            annotations=[
+                dict(
+                    x=53,
+                    y=0.9,
+                    xref='x',
+                    yref='y',
+                    text='Semana da Eleição',
+                    showarrow=True,
+                    ax=100,
+                    ay=-30,
+                    font=dict(
+                        family='Courier New, monospace',
+                        size=16,
+                        color='#696969'
+                    )
+                )
+            ],
             xaxis = dict(
                 title = 'Semanas de 04/10/2013 a 04/10/2015',
                 nticks = 40,
@@ -290,7 +307,7 @@ if __name__ == '__main__':
     dir_out = path['dir_out']
     excel_path = path['excel_path']
 
-    sheet_name = "amostra"
+    sheet_name = "new"
     col = 4
     rt = ReadTwitter(dir_in, excel_path, sheet_name, col)
     id_screenname_party = rt.id_screenname_party_from_xls()
@@ -347,7 +364,12 @@ if __name__ == '__main__':
         with open(dir_out + "retweets_counter.pck", 'wb') as handle:
             pickle.dump(retweets, handle)
 
-    dic_color = {x: "#%06x" % random.randint(0, 0xFFFFFF) for x in dep_party.keys()}
+    colors = ['aqua', 'black', 'blue', 'fuchsia', 'gray', 'green',
+              'lime', 'maroon', 'navy', 'olive', 'orange', 'purple', 'red',
+              'silver', 'teal', 'cyan4', 'yellow','pink3','DarkOrchid',
+              'tomato1','yellow3', 'turquoise','thistle','SlateGray2', 'LightCoral','green4' ]
+    #"#%06x" % random.randint(0, 0xFFFFFF)
+    dic_color = {v: colors[i]  for i, v in enumerate(dep_party.keys())}
 
     print("\nCosine Similarity\n")
     weeks_h_sim = dict()
@@ -440,9 +462,9 @@ if __name__ == '__main__':
         h_text2 += "\n"+party + "\n"
         m_text2 += "\n"+party + "\n"
         r_text2 += "\n"+party + "\n"
-        h_text += str(list(party_h_hi[party].items())[:10]) + "\n"
-        m_text += str(list(party_m_hi[party].items())[:10]) + "\n"
-        r_text += str(list(party_r_hi[party].items())[:10]) + "\n"
+        h_text += str(sorted(party_h_hi[party].items(), key=lambda x: x[1], reverse=True )[:10]) + "\n"
+        m_text += str(sorted(party_m_hi[party].items(), key=lambda x: x[1], reverse=True )[:10]) + "\n"
+        r_text += str(sorted(party_r_hi[party].items(), key=lambda x: x[1], reverse=True )[:10]) + "\n"
         bu = party_h_bu[party]
         for x in bu.items():
             if len(x[1]) != 0:
@@ -454,7 +476,7 @@ if __name__ == '__main__':
         bu = party_r_bu[party]
         for x in bu.items():
             if len(x[1]) != 0:
-                r_text2 += str(x[1]) + "\n"
+                r_text2 += str(x[0])+"\n"+str(x[1]) + "\n"
 
     t = h_text+"\n"+m_text+"\n"+r_text+"\n"+ h_text2+"\n"+m_text2+"\n"+r_text2+"\n"
 
