@@ -185,30 +185,53 @@ def plot_similarity(parties, weeks, dic_tweets, dic_color, f_name, y_title):
             line = dict(color = dic_color[party]),
             opacity = 0.8))
     data.append(go.Scatter(
-            x = [53,53],
-            y = [0,1],
+            x = [52,52],
+            y = [0,0.8],
             mode = "lines",
             line = go.Line(color = "#111111", width = 2),
             showlegend = False
         )
     )
+    data.append(go.Scatter(
+        x=[55, 55],
+        y=[0, 0.8],
+        mode="lines",
+        line=go.Line(color="grey", width=2),
+        showlegend=False
+    )
+    )
 
     layout = go.Layout(
         title = f_name.split("/")[-1],
-        annotations = [
+        annotations=[
             dict(
-                x = 53,
-                y = 0.9,
-                xref = 'x',
-                yref = 'y',
-                text = 'Semana da Eleição',
-                showarrow = True,
-                ax = 100,
-                ay = -30,
-                font = dict(
-                    family = 'Courier New, monospace',
-                    size = 16,
-                    color = '#696969'
+                x=52,
+                y=0.7,
+                xref='x',
+                yref='y',
+                text='Eleição',
+                showarrow=True,
+                ax=-50,
+                ay=-30,
+                font=dict(
+                    family='Courier New, monospace',
+                    size=16,
+                    color='#696969'
+                )
+            ),
+            dict(
+                x=55,
+                y=0.7,
+                xref='x',
+                yref='y',
+                text='Segundo Turno',
+                showarrow=True,
+                ax=70,
+                ay=-30,
+                font=dict(
+                    family='Courier New, monospace',
+                    size=16,
+                    color='#696969'
                 )
             )
         ],
@@ -250,10 +273,19 @@ def plot_reproduction(parties, weeks, dic_tweets, dic_color, f_name):
                 line = dict(color = dic_color[party]),
                 opacity = 0.8))
         data.append(go.Scatter(
-            x=[53, 53],
-            y=[0, 1],
+            x=[52, 52],
+            y=[0, 0.8],
             mode="lines",
             line=go.Line(color="#111111", width=2),
+            showlegend=False
+        )
+        )
+
+        data.append(go.Scatter(
+            x=[55, 55],
+            y=[0, 0.8],
+            mode="lines",
+            line=go.Line(color="grey", width=2),
             showlegend=False
         )
         )
@@ -262,13 +294,28 @@ def plot_reproduction(parties, weeks, dic_tweets, dic_color, f_name):
             title = f_name.split("/")[-1],
             annotations=[
                 dict(
-                    x=53,
-                    y=0.9,
+                    x=52,
+                    y=0.7,
                     xref='x',
                     yref='y',
-                    text='Semana da Eleição',
+                    text='Eleição',
                     showarrow=True,
-                    ax=100,
+                    ax=-50,
+                    ay=-30,
+                    font=dict(
+                        family='Courier New, monospace',
+                        size=16,
+                        color='#696969'
+                    )
+                ),
+                dict(
+                    x=55,
+                    y=0.7,
+                    xref='x',
+                    yref='y',
+                    text='Segundo Turno',
+                    showarrow=True,
+                    ax=70,
                     ay=-30,
                     font=dict(
                         family='Courier New, monospace',
@@ -364,10 +411,10 @@ if __name__ == '__main__':
         with open(dir_out + "retweets_counter.pck", 'wb') as handle:
             pickle.dump(retweets, handle)
 
-    colors = ['aqua', 'black', 'blue', 'fuchsia', 'gray', 'green',
-              'lime', 'maroon', 'navy', 'olive', 'orange', 'purple', 'red',
-              'silver', 'teal', 'cyan4', 'yellow','pink3','DarkOrchid',
-              'tomato1','yellow3', 'turquoise','thistle','SlateGray2', 'LightCoral','green4' ]
+    colors = ['blue', 'green', 'cornsilk', 'darkturquoise', 'lime', 'khaki',
+              'acqua', 'honeydew', 'magenta', 'olive', 'coral', 'purple', 'red',
+              'darkred', 'blueviolet', 'sienna', 'yellow','lightcoral','orange',
+              'lightyellow','yellow2', 'mistyrose','gold','salmon', 'brown','silver' ]
     #"#%06x" % random.randint(0, 0xFFFFFF)
     dic_color = {v: colors[i]  for i, v in enumerate(dep_party.keys())}
 
@@ -416,7 +463,7 @@ if __name__ == '__main__':
             party_week = party + "_" + str(w)
             party_h_cr[party_week] = c_reproduction(w, party, hashtags)
             party_m_cr[party_week] = c_reproduction(w, party, mentions)
-            party_r_cr[party_week] = c_reproduction(w, party, hashtags)
+            party_r_cr[party_week] = c_reproduction(w, party, retweets)
 
     plot_reproduction(dep_party.keys(), weeks, party_h_cr, dic_color, dir_out + "cultural_repro_hastags")
     plot_reproduction(dep_party.keys(), weeks, party_m_cr, dic_color, dir_out + "cultural_repro_mentions")
@@ -449,12 +496,12 @@ if __name__ == '__main__':
         party_r_bu[party] = party_burstiness(r_features, weeks, party, retweets)
 
     print("Processando Institutioness e Burstiness")
-    h_text  = "\nInstitutionness por partido\n"
-    m_text = ''
-    r_text = ''
-    h_text2 = "\nBurstiness por partido\n"
-    m_text2 = ''
-    r_text2 = ''
+    h_text  = "\nInstitutionness por partido\n HashTags \n"
+    m_text = '\nMentions\n'
+    r_text = '\nRetweets\n'
+    h_text2 = "\nBurstiness por partido\n HashTags\n"
+    m_text2 = '\nMentions\n'
+    r_text2 = '\nRetweets\n'
     for party in dep_party.keys():
         h_text += "\n"+party+"\n"
         m_text += "\n"+party + "\n"
@@ -468,11 +515,11 @@ if __name__ == '__main__':
         bu = party_h_bu[party]
         for x in bu.items():
             if len(x[1]) != 0:
-                h_text2 += str(x[1]) + "\n"
+                h_text2 += str(x[0])+"\n"+ str(x[1]) + "\n"
         bu = party_m_bu[party]
         for x in bu.items():
             if len(x[1]) != 0:
-                m_text2 += str(x[1]) + "\n"
+                m_text2 +=  str(x[0])+"\n"+str(x[1]) + "\n"
         bu = party_r_bu[party]
         for x in bu.items():
             if len(x[1]) != 0:
