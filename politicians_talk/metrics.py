@@ -6,13 +6,18 @@ import configparser
 import re
 from read_twitter import ReadTwitter
 from collections import Counter
-import math, datetime
+import datetime
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 import math
 import pandas as pd
 from burst import Burst
 import numpy as np
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+import plotly.graph_objs as go
+import random
+
+
 
 
 
@@ -143,16 +148,6 @@ def party_h_index(features, weeks, party, dic_tweets):
         f_index[f] = hIndex(tmp)
     return f_index
 
-def f_gamma(s, r, d, qtd_r, qtd_d):
-    p = 0
-    if (len(qtd_d) != 0):
-        p = sum(qtd_r) / sum(qtd_d) * (math.pow(2, s))
-    print("s %d,r %d,d %d,R %d, D %d" % (s,r,d,sum(qtd_r),sum(qtd_d)))
-    tmp = misc.comb(d, r) * (math.pow(p, r)) * (math.pow((1 - p), (d - r)))
-    if tmp != 0:
-        return (- math.log(tmp))
-    return tmp
-
 def party_burstiness(features, weeks, party, dic_tweets):
     bt = Burst()
     b_index = dict()
@@ -174,6 +169,118 @@ def party_burstiness(features, weeks, party, dic_tweets):
         bursts = bt.enumerate_bursts(q, 'burstLabel')
         b_index[f] = bursts
     return b_index
+
+def plot_similarity(parties, weeks, dic_tweets, dic_color, f_name, y_title):
+    data = list()
+    for party in parties:
+        tmp = list()
+        for w in range(1, weeks + 1):
+            tmp.append(dic_tweets[w][party])
+        data.append(go.Scatter(
+            y = tmp,
+            x = [x for x in range(1, weeks)],
+            mode = "lines+markers",
+            marker = go.Marker(color = dic_color[party]),
+            name = party,
+            line = dict(color = dic_color[party]),
+            opacity = 0.8))
+    data.append(go.Scatter(
+            x = [53,53],
+            y = [0,1],
+            mode = "lines",
+            line = go.Line(color = "#111111", width = 2),
+            showlegend = False
+        )
+    )
+
+    layout = go.Layout(
+        title = f_name.split("/")[-1],
+        annotations = [
+            dict(
+                x = 53,
+                y = 0.9,
+                xref = 'x',
+                yref = 'y',
+                text = 'Semana da Eleição',
+                showarrow = True,
+                ax = 100,
+                ay = -30,
+                font = dict(
+                    family = 'Courier New, monospace',
+                    size = 16,
+                    color = '#696969'
+                )
+            )
+        ],
+        xaxis = dict(
+            title = 'Semanas de 04/10/2013 a 04/10/2015',
+            nticks = 40,
+            domain = [0, 1],
+            titlefont = dict(
+                family = 'Arial, sans-serif',
+                size = 18,
+                color = 'grey'
+            )
+        ),
+        yaxis = dict(
+            title = y_title,
+            titlefont = dict(
+                family = 'Arial, sans-serif',
+                size = 18,
+                color = 'grey'
+            )
+        )
+    )
+    fig = go.Figure(data = data, layout = layout)
+    plot(fig, filename = f_name)
+
+def plot_reproduction(parties, weeks, dic_tweets, dic_color, f_name):
+        data = list()
+        for party in parties:
+            tmp = list()
+            for w in range(1, weeks):
+                party_week = party + "_" + str(w)
+                tmp.append(dic_tweets[party_week])
+            data.append(go.Scatter(
+                y = tmp,
+                x = [x for x in range(1, weeks)],
+                mode = "lines+markers",
+                marker = go.Marker(color = dic_color[party]),
+                name = party,
+                line = dict(color = dic_color[party]),
+                opacity = 0.8))
+        data.append(
+            go.Scatter(
+                y = 1,
+                x = 53,
+                mode = "lines",
+                line = dict(width = 2, color = "#000000"),
+                opacity = 0.8)
+        )
+
+        layout = go.Layout(
+            title = f_name.split("/")[-1],
+            xaxis = dict(
+                title = 'Semanas de 04/10/2013 a 04/10/2015',
+                nticks = 40,
+                domain = [0, 1],
+                titlefont = dict(
+                    family = 'Arial, sans-serif',
+                    size = 18,
+                    color = 'grey'
+                )
+            ),
+            yaxis = dict(
+                title = 'Cultural Reproduction (RBO)',
+                titlefont = dict(
+                    family = 'Arial, sans-serif',
+                    size = 18,
+                    color = 'grey'
+                )
+            )
+        )
+        fig = go.Figure(data = data, layout = layout)
+        plot(fig, filename = f_name)
 
 if __name__ == '__main__':
     cf = configparser.ConfigParser()
@@ -240,14 +347,12 @@ if __name__ == '__main__':
         with open(dir_out + "retweets_counter.pck", 'wb') as handle:
             pickle.dump(retweets, handle)
 
+    dic_color = {x: "#%06x" % random.randint(0, 0xFFFFFF) for x in dep_party.keys()}
+
+    print("\nCosine Similarity\n")
     weeks_h_sim = dict()
     weeks_m_sim = dict()
     weeks_r_sim = dict()
-    weeks_h_cf = dict()
-    weeks_m_cf = dict()
-    weeks_r_cf = dict()
-
-    print("\nCosine Similarity\n")
     for w in range(1, weeks + 1):
         m_features = features(w, mentions)
         weeks_m_sim[w] = similarity(w, m_features, dep_party.keys(), mentions)
@@ -256,11 +361,28 @@ if __name__ == '__main__':
         r_features = features(w, retweets)
         weeks_r_sim[w] = similarity(w, r_features, dep_party.keys(), retweets)
 
+    plot_similarity(dep_party.keys(), weeks, weeks_h_sim, dic_color, dir_out + "similarity_hastags",
+                    'Similaridade Cultural (Cosseno)')
+    plot_similarity(dep_party.keys(), weeks, weeks_m_sim, dic_color, dir_out + "similarity_mentions",
+                    'Similaridade Cultural (Cosseno)')
+    plot_similarity(dep_party.keys(), weeks, weeks_r_sim, dic_color, dir_out + "similarity_retweets",
+                    'Similaridade Cultural (Cosseno)')
+
     print("\nCultural Focus\n")
+    weeks_h_cf = dict()
+    weeks_m_cf = dict()
+    weeks_r_cf = dict()
     for w in range(1, weeks + 1):
         weeks_h_cf[w] = cultural_focus(w, dep_party.keys(), hashtags)
         weeks_m_cf[w] = cultural_focus(w, dep_party.keys(), mentions)
         weeks_r_cf[w] = cultural_focus(w, dep_party.keys(), retweets)
+
+    plot_similarity(dep_party.keys(), weeks, weeks_h_cf, dic_color, dir_out + "cult_focus_hastags",
+                    'Cultural Focus (1 - Entropy)')
+    plot_similarity(dep_party.keys(), weeks, weeks_m_cf, dic_color, dir_out + "cult_focus_mentions",
+                    'Cultural Focus (1 - Entropy)')
+    plot_similarity(dep_party.keys(), weeks, weeks_r_cf, dic_color, dir_out + "cult_focus_retweets",
+                    'Cultural Focus (1 - Entropy)')
 
     print("\nCultural Reproduction\n")
     p = 0.9
@@ -273,6 +395,11 @@ if __name__ == '__main__':
             party_h_cr[party_week] = c_reproduction(w, party, hashtags)
             party_m_cr[party_week] = c_reproduction(w, party, mentions)
             party_r_cr[party_week] = c_reproduction(w, party, hashtags)
+
+    plot_reproduction(dep_party.keys(), weeks, party_h_cr, dic_color, dir_out + "cultural_repro_hastags")
+    plot_reproduction(dep_party.keys(), weeks, party_m_cr, dic_color, dir_out + "cultural_repro_mentions")
+    plot_reproduction(dep_party.keys(), weeks, party_r_cr, dic_color, dir_out + "cultural_repro_retweets")
+
 
     print("\nInstitutionness\n")
     party_h_hi = dict()
@@ -298,3 +425,41 @@ if __name__ == '__main__':
         party_m_bu[party] = party_burstiness(m_features, weeks, party, mentions)
         r_features = party_features(party, retweets)
         party_r_bu[party] = party_burstiness(r_features, weeks, party, retweets)
+
+    print("Processando Institutioness e Burstiness")
+    h_text  = "\nInstitutionness por partido\n"
+    m_text = ''
+    r_text = ''
+    h_text2 = "\nBurstiness por partido\n"
+    m_text2 = ''
+    r_text2 = ''
+    for party in dep_party.keys():
+        h_text += "\n"+party+"\n"
+        m_text += "\n"+party + "\n"
+        r_text += "\n"+party + "\n"
+        h_text2 += "\n"+party + "\n"
+        m_text2 += "\n"+party + "\n"
+        r_text2 += "\n"+party + "\n"
+        h_text += str(list(party_h_hi[party].items())[:10]) + "\n"
+        m_text += str(list(party_m_hi[party].items())[:10]) + "\n"
+        r_text += str(list(party_r_hi[party].items())[:10]) + "\n"
+        bu = party_h_bu[party]
+        for x in bu.items():
+            if len(x[1]) != 0:
+                h_text2 += str(x[1]) + "\n"
+        bu = party_m_bu[party]
+        for x in bu.items():
+            if len(x[1]) != 0:
+                m_text2 += str(x[1]) + "\n"
+        bu = party_r_bu[party]
+        for x in bu.items():
+            if len(x[1]) != 0:
+                r_text2 += str(x[1]) + "\n"
+
+    t = h_text+"\n"+m_text+"\n"+r_text+"\n"+ h_text2+"\n"+m_text2+"\n"+r_text2+"\n"
+
+    print("Saving file")
+    f = open(dir_out + "Burst_institutioness.txt", 'w+')
+    f.write(t)
+
+    f.close()
