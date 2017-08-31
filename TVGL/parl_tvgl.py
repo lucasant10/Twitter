@@ -21,6 +21,7 @@ cf.read("../file_path.properties")
 path = dict(cf.items("file_path"))
 dir_out = path['dir_out']
 
+print("processing dataset")
 with open(dir_out + "time_doc_parl_2.pck", 'rb') as handle:
     parl = pickle.load(handle)
 
@@ -35,14 +36,18 @@ for p in parl:
 with open(dir_out + "tw_per_day_parl.pck", 'wb') as handle:
     pickle.dump(tw_parl, handle)
 
-# transpose = np.array(tw_parl).T
-#
-# lamb = 2.5
-# beta = 12
-# lengthOfSlice = 7
-# thetaSet = tvgl.TVGL(transpose, lengthOfSlice, lamb, beta, indexOfPenalty = 3, verbose=True)
-# print(thetaSet)
-np.linalg.norm(thetaSet[2]-thetaSet[1],'fro')
+transpose = np.array(tw_parl).T
+print("processing TVGL")
+lamb = 2.5
+beta = 12
+lengthOfSlice = 7
+thetaSet = tvgl.TVGL(transpose, lengthOfSlice, lamb, beta, indexOfPenalty = 3, verbose=True)
+print(thetaSet)
+
+with open(dir_out + "theta_list.pck", 'wb') as handle:
+    pickle.dump(thetaSet, handle)
+
+#np.linalg.norm(thetaSet[2]-thetaSet[1],'fro')
 
 
 
