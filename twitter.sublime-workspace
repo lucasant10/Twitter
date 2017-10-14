@@ -1,0 +1,421 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"to",
+				"topic_graph"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"contents": "## Texto com wntm ##\nK:3, n(W):508\np(z)\t\tTop words\n0.337673\tagenda:0.048693 reuniao:0.025923 bem:0.016628 jandira:0.016338 cheia:0.014344 nesta:0.013122 sertanopolis:0.012897 londrina:0.012575 logo:0.012543 nacional:0.010839\n0.331554\tcomissao:0.073177 especial:0.040650 camara:0.021488 deputados:0.016116 cunha:0.014642 voto:0.014642 secreto:0.012939 processo:0.011989 impeachment:0.011661 instalacao:0.011039\n0.330773\tagenda:0.025709 obrigado:0.022622 abraco:0.019241 noite:0.015399 agradecer:0.014184 novo:0.013659 reuniao:0.013495 grande:0.013068 mim:0.011886 politica:0.011787\nK:3, n(W):508\n\"Comiss\\u00e3o geral do c\\u00f3digo civil da internet na Camara dos Deputados . Ao vivo na TV,radio c\\u00e2mara e internete.\", \n\n\n## Texto sem wntm ##\nK:3, n(W):507\np(z)        Top words\n0.358812    comissao:0.066426 especial:0.034835 camara:0.023900 deputados:0.013369 sociedade:0.013369 cunha:0.013369 apoio:0.011749 processo:0.011344 obrigado:0.011344 agradeco:0.010939\n0.334962    agenda:0.040819 comissao:0.027359 abraco:0.020846 campanha:0.014767 reuniao:0.013465 estarei:0.013030 segue:0.013030 grande:0.013030 nesta:0.013030 bem:0.011294\n0.306226    agenda:0.046128 reuniao:0.026632 brasil:0.017123 londrina:0.016647 jandira:0.016647 obrigado:0.016647 cultura:0.012843 sertanopolis:0.011417 procopio:0.011417 curitiba:0.011417\n\n## LDA com wntm ##\n[(0, '0.039*comissao + 0.024*agenda + 0.024*especial + 0.013*reuniao + 0.011*curitiba + 0.010*manha + 0.010*londrina + 0.009*presidente + 0.008*pec + 0.008*cunha'), \n(1, '0.029*agenda + 0.028*comissao + 0.017*reuniao + 0.017*obrigado + 0.012*abraco + 0.011*especial + 0.011*camara + 0.009*deputados + 0.007*grande + 0.007*campanha'), \n(2, '0.023*agenda + 0.022*comissao + 0.014*obrigado + 0.011*brasil + 0.011*noite + 0.011*especial + 0.010*sociedade + 0.009*campanha + 0.008*pessoas + 0.008*mim')]\n\n## LDA sem wntm ##\n\n[(0, '0.017*obrigado + 0.016*comissao + 0.015*agenda + 0.010*campanha + 0.010*apoio + 0.010*jandira + 0.010*agradeco + 0.009*especial + 0.008*confianca + 0.008*abraco'), \n(1, '0.025*agenda + 0.012*comissao + 0.012*obrigado + 0.012*abraco + 0.010*especial + 0.009*grande + 0.006*rede + 0.006*caminho + 0.006*marco + 0.006*instalacao'), \n(2, '0.036*comissao + 0.017*agenda + 0.013*reuniao + 0.011*camara + 0.011*especial + 0.009*obrigado + 0.007*semana + 0.007*londrina + 0.007*pps + 0.007*abraco')]\n\n\n## Tópicos elipses ##\n\n['18/8', 'incentivaram', 'especial', 'cheia', 'assim', 'verdade', 'comecou', 'seminario', 'mim', 'entenda', 'urnas', 'setores', 'saudades', 'direitos', 'minas', 'possivel', 'federal', 'marco', 'manifesto', 'recebidas', 'terca', 'maior', 'associacao', 'rocinha', 'proposta', 'ideologicas', 'atingiu', 'camara', 'panama', 'repleta', 'portal', '16h', 'hashtag', 'falecimento', 'rovai', 'unico', 'mundo', 'instalacao', 'visitas', 'oxiuro', 'prefeitura', 'historia', 'preconceito', 'corrida', 'semanal', 'extensa', 'substitutivo', 'votara', 'pmdb-sc', 'intensa', 'abertura', 'contas', 'arvrao', 'representantes', 'prestacao', 'goncalo', 'mudancas', 'londrina', 'juntos', 'itapipoca', 'pioneiro', 'utopias', 'base', 'visitando', 'fenix', 'inumeras', 'vice-prefeito', 'analisa', 'lancam', 'sessao', 'rio', 'comissao', 'novamente', 'logo', 'aprovar', 'agroecologia', 'vinculada', 'bem', 'querem', 'querido', 'eduardo', 'fortes', 'cada', 'vidigal', 'raso', 'municipios', 'reivindicacao', 'respostas', 'trata', 'vou', 'penal', 'politica', 'violencia', 'melhor', 'estados', 'goioere', 'visita', 'levam', 'comissoes', 'mundial', 'amigos', 'natal', 'edinho', 'aprovada', 'codigo', 'parque', 'senzala', 'comitiva', 'processo', 'vitoria', 'baixada', 'amanha', 'participo', 'sede', 'autoritaria', 'mil', 'vao', 'populismo', '99/11', 'seguro', 'circo', 'umuarama', 'manaus-am', 'vitimismo', 'opinioes', 'relatorio', '215', 'renato', 'eleitoras', 'senhor', 'terra', 'paranaense', 'nasce', 'nascimento', 'tuitaco', 'aspasia', 'participado', 'daqui', 'votamos', 'plenario', 'abraco', 'final', 'decidir', 'caminho', 'jandira', 'trabalho', 'portas', 'vivo', 'adiante', 'aposentados', 'podem', 'adiado', 'capoeira', 'mae', 'acreditam', 'chegara', 'logica', 'vida', 'estarei', 'absurdo', 'geral', 'retrocesso', 'sindicato', 'separar', 'quadra', 'pampa', 'iniciada', 'ontem', 'quinta-feira', 'concederam', 'cuiaba-mt', 'recebida', 'antidemocratica', 'vereador', 'aumento', 'enviam', 'pcdob', 'paraibano', 'manifestacoes', 'bueno', 'maioridade', 'peabiru', 'homenagem', 'encontro', 'encerramento', 'diante', 'mandato', 'discurso', 'durante', 'cultural', 'premio', 'estatuto', 'enfrentou', 'diz', 'sociais', 'porque', 'sempre', 'maria', 'secreto', 'desarmamento', 'novo', 'riopodeserbemmelhor']\n\n['chacara', 'estaremos', 'procopio', 'vezes', 'prazer', 'consideracao', 'ric', 'internet', 'aula', 'abrilhantando', 'dilma', 'vinganca', 'deputados', 'cultura', 'twitter', 'partidaria', 'antecipado', 'ass', 'civil', 'coerencia', 'janeiro', 'alem', 'psol', 'cumpri', 'sales', 'tia', 'agradeco', 'militares', 'impedido', 'aprova', 'lombriga', 'ceara', 'projeto', 'viver', 'paranagua', 'bez', 'sexta-feira', 'terem', 'junto', 'vez', 'significar', 'rosario', 'energia', 'internete', 'controle', 'participar', 'deste', 'deus', 'barca', 'atual', 'atletico', 'foco', 'mediador', 'povo', 'aniversario', 'pac', 'contemporanea', 'reducao', 'grupo', 'pessoa', 'forma', 'democratica', 'bolsonaro', 'segue', 'pre-candidatos', 'voto', 'instale', 'cornelio', 'genial', 'momento', 'cpmi', 'paraiba', 'preciso', 'cumprir', 'movimentada', 'acaba', 'critica', 'sabado', 'etica', 'partidos', 'bandeirantes', 'exteriores', 'fala', 'friedenbach', 'comeca', 'elegeu', 'neste', 'fila', 'lindberg', 'aplicar', 'agenda', 'decreta', 'presidi', 'moreira', 'juristas', 'estruturantes', 'comando']\n\n['trabalhar', 'rede', 'crescer', 'continuarei', 'justa', 'liana', 'nacional', 'dai', 'entrevistas', 'apucarana', 'importancia', 'refinaria', 'campanha', 'caminhada', 'quinta', 'votaram', 'estadual', 'privado', 'ataque', 'pessoas', 'pau', 'visitaremos', 'queremos', 'fazer', 'encontra-lo', 'rubens', 'tenta', 'minutos', 'massa', 'gremio', 'partido', 'petroleo', 'bate', 'cumpro', 'participei', 'liderancas', 'presidente', 'sertanopolis', 'carinho', 'agradecemos', 'presenca', 'parecer', 'producao', 'cunha', 'atraves', '95.555', 'agradecimentos', 'milhoes', 'noite', 'turini', 'projetos', 'tercilio', 'mattos', 'blindar', 'ajudaram', 'medicos', 'islamico', 'brasil', 'quinto', 'deputado', 'formacao', 'limites', 'depositou', 'cancelada', 'relacoes', 'paises', 'todas', 'fatima', 'pagina', 'termos', 'movimentos', 'defesa', 'parlatino', 'reuniao', 'lindbergh', 'zoologico', 'feliciano', 'reunioes', 'grande', 'virar', 'dentre', 'felicitacoes', 'debate', 'midia', 'participaram', 'chegarei', 'cafe', 'arrumadores', 'sentir', 'ressalto', 'comunidade', 'segunda', 'quero', 'ccj', 'eleitores', 'participa', 'pec', 'suspendi', 'coloca', 'lugar', 'deps', 'recebidos', 'norte', 'detalhes', 'arrecadados', 'mensagens', '4,80', 'terminar', 'impedida', '2015', 'irmaos', 'ignorancia', 'acompanhe', 'unidos', 'justica', 'regulatorio', 'delta', 'espaco', 'sertaneja', 'paranavai', 'patrocinio', 'maringa', 'laico', 'jamais', 'pouco', 'favor', 'interno', 'estado', 'recebido', 'divulgacao', 'irmas', 'sociedade', 'constituicao', 'mariluz', 'pps', 'radio', 'varios', 'apoio', 'manha', 'conseguimos', 'cumprimos', 'futebol', 'eleicao', '10/12', 'discute', 'nunca', 'moradores', 'contribuem', 'jejum', 'impeachment', 'urai', 'terrorismo', 'nesta', 'ministro', 'pagou', 'bsb', 'iniciar', 'nordestinos', 'ultrapassou', 'humanos', 'bahia', 'tarde', 'congresso', 'diversos', 'iria', 'confianca', 'obrigado', 'contribuicoes', 'agradecer', 'prestigiar', 'candidatos', 'semana', 'curitiba', 'representante', 'demais', 'barreirinha', '112780']",
+			"file": "/Users/lucasso/Documents/experimentos/wntm/topicos_controle_2.txt",
+			"file_size": 8184,
+			"file_write_time": 131390790210000000,
+			"settings":
+			{
+				"buffer_size": 7748,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "from sklearn import metrics\nfrom sklearn.metrics import pairwise_distances\nfrom sklearn import datasets\nimport numpy as np\nfrom sklearn.cluster import KMeans\n\ndataset = datasets.load_iris()\nX = dataset.data\ny = dataset.target\nkmeans_model = KMeans(n_clusters=3, random_state=1).fit(X)\nlabels = kmeans_model.labels_\nmetrics.silhouette_score(X, labels, metric='euclidean')",
+			"settings":
+			{
+				"buffer_size": 370,
+				"line_ending": "Unix",
+				"name": "from sklearn import metrics"
+			}
+		},
+		{
+			"file": "/Users/lucasso/Documents/experimentos/wntm/topicos_controle.txt",
+			"settings":
+			{
+				"buffer_size": 8035,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "#!/usr/bin/env python\n#coding=utf-8\n# Function: translate the results from BTM\n# Input:\n#    mat/pw_z.k20\n\nimport sys\nimport networkx as nx\n\n\n# return:    {wid:w, ...}\ndef read_voca(pt):\n    voca = {}\n    for l in open(pt):\n        wid, w = l.strip().split('\\t')[:2]\n        voca[int(wid)] = w\n    return voca\n\ndef read_pz(pt):\n    return [float(p) for p in open(pt).readline().split()]\n    \n# voca = {wid:w,...}\ndef dispTopics(pt, voca, pz):\nk = 0\ntopics = []\ntp_graph = []\nfor l in open(zw_pt):\n    vs = [float(v) for v in l.split()]\n    wvs = zip(range(len(vs)), vs)\n    wvs = sorted(wvs, key=lambda d:d[1], reverse=True)\n    #tmps = ' '.join(['%s' % voca[w] for w,v in wvs[:10]])\n    tp_graph.append([w for w,v in wvs[:15]])\n    tmps = ' '.join(['%s:%f' % (voca[w],v) for w,v in wvs[:15]])\n    topics.append((pz[k], tmps))\n    k += 1\n    \nprint('p(z)\\t\\tTop words')\n    for pz, s in sorted(topics, reverse=True):\n        print('%f\\t%s' % (pz, s))\n    print('building graph')\n    graph(tp_graph)\n\n\ndef graph(topics):\n    topic_graph = nx.Graph()\n    for i in range(len(topics)):\n        for k in range(i+1,len(topics)):\n            weight = round(len(set(topics[i])&set(topics[k]))/len(topics[0]),3)\n            topic_graph.add_edge(i,k, weight= weight)\n            nx.write_gml(topic_graph,\"topicos.gml\")\n\n\n\nif __name__ == '__main__':\n    if len(sys.argv) < 4:\n        print('Usage: python %s <model_dir> <K> <voca_pt>' % sys.argv[0])\n        print('\\tmodel_dir    the output dir of BTM')\n        print('\\tK    the number of topics')\n        print('\\tvoca_pt    the vocabulary file')\n        exit(1)\n        \n    model_dir = sys.argv[1]\n    K = int(sys.argv[2])\n    voca_pt = sys.argv[3]\n    voca = read_voca(voca_pt)    \n    W = len(voca)\n    print('K:%d, n(W):%d' % (K, W))\n\n    pz_pt = model_dir + 'k%d.pz' % K\n    pz = read_pz(pz_pt)\n    \n    zw_pt = model_dir + 'k%d.pw_z' %  K\n    dispTopics(zw_pt, voca, pz)\n",
+			"file": "topic_BTM.py",
+			"file_size": 1973,
+			"file_write_time": 131390775210000000,
+			"settings":
+			{
+				"buffer_size": 1919,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "word2vec.py",
+			"settings":
+			{
+				"buffer_size": 2395,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"contents": "import sys\nimport gensim, logging\nimport  \nimport configparser\nimport numpy as np\nfrom matplotlib import pyplot as plt\nfrom sklearn import manifold, datasets\nfrom collections import namedtuple\nimport topic_\n\n\n\nif __name__=='__main__':\n\ncf = configparser.ConfigParser()\ncf.read(\"file_path.properties\")\npath = dict(cf.items(\"file_path\"))\ndir_w2v = path['dir_w2v']\ndir_w2v = dir_w2v+\"2k_like/\"\n\n\n\n    pz_pt = model_dir + 'k%d.pz' % K\n    pz = read_pz(pz_pt)\n    \n    zw_pt = model_dir + 'k%d.pw_z' %  K\n    dispTopics(zw_pt, voca, pz)\ncathc",
+			"file": "classifcation_BTM.py",
+			"file_size": 532,
+			"file_write_time": 131396181900000000,
+			"settings":
+			{
+				"buffer_size": 537,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 367.0,
+		"last_filter": "Package Control: ",
+		"selected_items":
+		[
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 449.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"expanded_folders":
+	[
+		"/Users/lucasso/Documents/workspace/Twitter"
+	],
+	"file_history":
+	[
+		"/Users/lucasso/Library/Application Support/Sublime Text 3/Packages/User/All Autocomplete.sublime-settings",
+		"/Users/lucasso/Documents/tweets/saudacao.json",
+		"/Users/lucasso/Documents/tweets/comissao.json",
+		"/Users/lucasso/Downloads/BTM-master/script/runExample.sh",
+		"/Users/lucasso/Documents/workspace/Twitter/graph_lda.py",
+		"/Users/lucasso/Downloads/BTM-master/script/topic_BTM.py",
+		"/Users/lucasso/Downloads/BTM-master/script/indexDocs.py",
+		"/Users/lucasso/Documents/workspace/Twitter/dickson.py"
+	],
+	"find":
+	{
+		"height": 23.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			">>> ",
+			">>>",
+			"return"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			""
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 5,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/Users/lucasso/Documents/experimentos/wntm/topicos_controle_2.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 7748,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								724,
+								724
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 370,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								285,
+								285
+							]
+						],
+						"settings":
+						{
+							"auto_name": "from sklearn import metrics",
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "/Users/lucasso/Documents/experimentos/wntm/topicos_controle.txt",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 8035,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								68,
+								68
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "topic_BTM.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1919,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								1781,
+								1919
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "word2vec.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2395,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2395,
+								2395
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 552.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "classifcation_BTM.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 537,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								50,
+								62
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 23.0
+	},
+	"input":
+	{
+		"height": 31.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "twitter.sublime-project",
+	"replace":
+	{
+		"height": 64.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 380.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 203.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

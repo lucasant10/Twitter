@@ -1,0 +1,24 @@
+{
+	"build_systems":
+	[
+		{
+			"file_regex": "^[ ]*File \"(...*?)\", line ([0-9]*)",
+			"name": "Anaconda Python Builder",
+			"selector": "source.python",
+			"shell_cmd": "\"/Users/lucasso/.venv/bin/python\" -u \"$file\""
+		}
+	],
+	"folders":
+	[
+		{
+			"path": "."
+		},
+		{
+			"path": "/Users/lucasso/Downloads/ptm/ptm"
+		}
+	],
+	"settings":
+	{
+		"python_interpreter": "/Users/lucasso/.venv/bin/python"
+	}
+}
