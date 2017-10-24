@@ -188,7 +188,7 @@ class TwitterSearchImpl(TwitterSearch):
         :return:
         """
 
-        f =  open("coleta/"+tweets[0]['user_name']+".json", 'a+')
+        f =  open("../coleta/nao_eleitos/"+tweets[0]['user_name']+".json", 'a+')
 
         print "==== "+tweets[0]['user_name']+" ===="
 
@@ -213,12 +213,13 @@ class TwitterSearchImpl(TwitterSearch):
 
 if __name__ == '__main__':
 
-    xls = xlrd.open_workbook('ColetaPedro.xlsx')
-    sheet = xls.sheet_by_name("Sheet6")
-
+    xls = xlrd.open_workbook('../coleta/lista_parlamentares.xls')
+    sheet = xls.sheet_by_name("nao-eleitos")
+    
     #twit = TwitterSearchImpl(2, 8, 10000)
     #twit.search("from:DepArthurMaia")
     for i in xrange(sheet.nrows):
-        twit = TwitterSearchImpl(3, 8, 10000)
+        twit = TwitterSearchImpl(5, 8, 10000)
         #twit.search("from:DepAthurMaia")
-        twit.search("from:%s" % (sheet.cell_value(rowx= i, colx=3)))
+        twit.search("from:%s" % (sheet.cell_value(rowx= i, colx=1))) 
+    
