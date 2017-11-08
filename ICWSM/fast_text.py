@@ -4,14 +4,16 @@ import argparse
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Embedding, Input, LSTM
 from keras.models import Sequential, Model
-from keras.layers import Activation, Dense, Dropout, Embedding, Flatten, Input, Merge, Convolution1D, MaxPooling1D, GlobalMaxPooling1D
+from keras.layers import Activation, Dense, Dropout, Embedding, Flatten, Input, Merge, Convolution1D, MaxPooling1D, GlobalMaxPooling1D, GlobalAveragePooling1D
 import numpy as np
 from sklearn.metrics import make_scorer, f1_score, accuracy_score, recall_score, precision_score, classification_report, precision_recall_fscore_support
-from sklearn.ensemble  import GradientBoostingClassifier, RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+from gensim.parsing.preprocessing import STOPWORDS
 from sklearn.model_selection import KFold
 from keras.utils import np_utils
 import operator
-import gensim, sklearn
+import gensim
+import sklearn
 from collections import defaultdict
 from batch_gen import batch_gen
 import os
@@ -19,8 +21,7 @@ import configparser
 from text_processor import TextProcessor
 import json
 
-
-### Preparing the text data
+# Preparing the text data
 texts = []  # list of text samples
 labels_index = {}  # dictionary mapping label name to numeric id
 labels = []  # list of label ids
@@ -29,33 +30,33 @@ labels = []  # list of label ids
 vocab, reverse_vocab = {}, {}
 freq = defaultdict(int)
 tweets = {}
-
+tw_class = list()
 
 
 EMBEDDING_DIM = None
 W2VEC_MODEL_FILE = None
-NO_OF_CLASSES=3
-
 SEED = 42
 NO_OF_FOLDS = 10
 CLASS_WEIGHT = None
 LOSS_FUN = None
 OPTIMIZER = None
-TOKENIZER = None
+KERNEL = None
+MAX_SEQUENCE_LENGTH = None
 INITIALIZE_WEIGHTS_WITH = None
 LEARN_EMBEDDINGS = None
 EPOCHS = 10
-BATCH_SIZE = 30
+BATCH_SIZE = 512
 SCALE_LOSS_FUN = None
 
-
 word2vec_model = None
+
 
 def load_files(dir_in):
     doc_list = list()
     tw_files = ([file for root, dirs, files in os.walk(dir_in)
                  for file in files if file.endswith('.json')])
     tw_class = list()
+    print(tw_files)
     for tw_file in tw_files:
         temp = list()
         with open(dir_in+tw_file) as data_file:
@@ -151,65 +152,27 @@ def shuffle_weights(model):
     weights = [np.random.permutation(w.flat).reshape(w.shape) for w in weights]
     model.set_weights(weights)
 
-def cnn_model(sequence_length, embedding_dim):
-    model_variation = 'CNN-rand'  #  CNN-rand | CNN-non-static | CNN-static
-    print('Model variation is %s' % model_variation)
 
-    # Model Hyperparameters
-    n_classes = NO_OF_CLASSES
-    embedding_dim = EMBEDDING_DIM
-    filter_sizes = (3, 4, 5)
-    num_filters = 100
-    dropout_prob = (0.25, 0.5)
-    hidden_dims = 100
-
-    # Training parameters
-    # Word2Vec parameters, see train_word2vec
-    #min_word_count = 1  # Minimum word count
-    #context = 10        # Context window size
-
-    graph_in = Input(shape=(sequence_length, embedding_dim))
-    convs = []
-    for fsz in filter_sizes:
-        conv = Convolution1D(nb_filter=num_filters,
-                             filter_length=fsz,
-                             border_mode='valid',
-                             activation='relu')(graph_in)
-                             #,subsample_length=1)(graph_in)
-        pool = GlobalMaxPooling1D()(conv)
-        #flatten = Flatten()(pool)
-        convs.append(pool)
-
-    if len(filter_sizes)>1:
-        out = Merge(mode='concat')(convs)
-    else:
-        out = convs[0]
-
-    graph = Model(input=graph_in, output=out)
-
-    # main sequential model
+def fast_text_model(sequence_length):
     model = Sequential()
-    #if not model_variation=='CNN-rand':
-    model.add(Embedding(len(vocab)+1, embedding_dim, input_length=sequence_length, trainable=LEARN_EMBEDDINGS))
-    model.add(Dropout(dropout_prob[0]))#, input_shape=(sequence_length, embedding_dim)))
-    model.add(graph)
-    model.add(Dropout(dropout_prob[1]))
-    model.add(Activation('relu'))
-    #model.add(Dense(n_classes))
-    #model.add(Activation('softmax'))
-    #model.compile(loss=LOSS_FUN, optimizer=OPTIMIZER, metrics=['accuracy'])
+    model.add(Embedding(len(vocab)+1, EMBEDDING_DIM, input_length=sequence_length))
+    model.add(Dropout(0.5))
+    model.add(GlobalAveragePooling1D())
+    #model.add(Dense(len(set(tw_class)), activation='softmax'))
     model.add(Dense(len(set(tw_class)), activation='sigmoid'))
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+    #model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
     print(model.summary())
     return model
 
-
-def train_CNN(X, y, inp_dim, model, weights, epochs=EPOCHS, batch_size=BATCH_SIZE):
+def train_fast_text(X, y, model, inp_dim, weights, epochs=EPOCHS,
+               batch_size=BATCH_SIZE):
     cv_object = KFold(n_splits=NO_OF_FOLDS, shuffle=True, random_state=42)
     print(cv_object)
     p, r, f1 = 0., 0., 0.
     p1, r1, f11 = 0., 0., 0.
     sentence_len = X.shape[1]
+    lookup_table = np.zeros_like(model.layers[0].get_weights()[0])
     for train_index, test_index in cv_object.split(X):
         if INITIALIZE_WEIGHTS_WITH == "word2vec":
             model.layers[0].set_weights([weights])
@@ -239,10 +202,10 @@ def train_CNN(X, y, inp_dim, model, weights, epochs=EPOCHS, batch_size=BATCH_SIZ
                 except Exception as e:
                     print(e)
                     print(y_temp)
-                #print(x.shape, y.shape)
                 loss, acc = model.train_on_batch(
                     x, y_temp, class_weight=class_weights)
 
+        lookup_table += model.layers[0].get_weights()[0]
         y_pred = model.predict_on_batch(X_test)
         y_pred = np.argmax(y_pred, axis=1)
         print(classification_report(y_test, y_pred))
@@ -264,44 +227,35 @@ def train_CNN(X, y, inp_dim, model, weights, epochs=EPOCHS, batch_size=BATCH_SIZ
     print("average precision is %f" % (p1/NO_OF_FOLDS))
     print("average recall is %f" % (r1/NO_OF_FOLDS))
     print("average f1 is %f" % (f11/NO_OF_FOLDS))
-
+    return lookup_table/float(10)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='CNN based models for politics twitter')
+    parser = argparse.ArgumentParser(
+        description='LSTM based models for politics twitter')
     parser.add_argument('-f', '--embeddingfile', required=True)
     parser.add_argument('-d', '--dimension', required=True)
-    parser.add_argument('--loss', default=LOSS_FUN, required=True)
-    parser.add_argument('--optimizer', default=OPTIMIZER, required=True)
     parser.add_argument('--epochs', default=EPOCHS, required=True)
     parser.add_argument('--batch-size', default=BATCH_SIZE, required=True)
     parser.add_argument('-s', '--seed', default=SEED)
     parser.add_argument('--folds', default=NO_OF_FOLDS)
-    parser.add_argument('--class_weight')
-    parser.add_argument('--initialize-weights', choices=['random', 'word2vec'], required=True)
-    parser.add_argument('--learn-embeddings', action='store_true', default=False)
-    parser.add_argument('--scale-loss-function', action='store_true', default=False)
+    parser.add_argument('--initialize-weights',
+                        choices=['random', 'word2vec'], required=True)
+    parser.add_argument('--learn-embeddings',
+                        action='store_true', default=False)
+    
     args = parser.parse_args()
-
     W2VEC_MODEL_FILE = args.embeddingfile
     EMBEDDING_DIM = int(args.dimension)
     SEED = int(args.seed)
     NO_OF_FOLDS = int(args.folds)
-    CLASS_WEIGHT = args.class_weight
-    LOSS_FUN = args.loss
-    OPTIMIZER = args.optimizer
-    INITIALIZE_WEIGHTS_WITH = args.initialize_weights
-    LEARN_EMBEDDINGS = args.learn_embeddings
     EPOCHS = int(args.epochs)
     BATCH_SIZE = int(args.batch_size)
-    SCALE_LOSS_FUN = args.scale_loss_function
-
-
-
-    print('Word2Vec embedding: %s' %(W2VEC_MODEL_FILE))
-    print('Embedding Dimension: %d' %(EMBEDDING_DIM))
-    print('Allowing embedding learning: %s' %(str(LEARN_EMBEDDINGS)))
-
+    INITIALIZE_WEIGHTS_WITH = args.initialize_weights
+    
     np.random.seed(SEED)
+    print('W2VEC embedding: %s' % (W2VEC_MODEL_FILE))
+    print('Embedding Dimension: %d' % (EMBEDDING_DIM))
+    print('Allowing embedding learning: %s' % (str(LEARN_EMBEDDINGS)))
 
     cf = configparser.ConfigParser()
     cf.read("../file_path.properties")
@@ -315,21 +269,20 @@ if __name__ == "__main__":
     doc_list, tw_class = load_files(dir_in)
     tweets = tp.text_process(doc_list, text_only=True)
     tweets = select_tweets(tweets)
-    NO_OF_CLASSES = len(set(tw_class))
 
     gen_vocab()
-    #filter_vocab(20000)
+    # filter_vocab(20000)
     X, y = gen_sequence()
-    #Y = y.reshape((len(y), 1))
-    MAX_SEQUENCE_LENGTH = max(map(lambda x:len(x), X))
-    print("max seq length is %d"%(MAX_SEQUENCE_LENGTH))
+    MAX_SEQUENCE_LENGTH = max(map(lambda x: len(x), X))
+    print("max seq length is %d" % (MAX_SEQUENCE_LENGTH))
+
     data = pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH)
     y = np.array(y)
     data, y = sklearn.utils.shuffle(data, y)
     W = get_embedding_weights()
-    model = cnn_model(data.shape[1], EMBEDDING_DIM)
-    train_CNN(data, y, EMBEDDING_DIM, model, W)
 
+    model = fast_text_model(data.shape[1])
+    train_fast_text(data, y, model, EMBEDDING_DIM, W)
 
-#python cnn.py -f model_word2vec -d 50 --loss categorical_crossentropy --optimizer adam --epochs 10 --batch-size 30 --initialize-weights word2vec --scale-loss-function
-#python cnn.py -f model_word2vec -d 100 --loss categorical_crossentropy --optimizer adam --epochs 10 --batch-size 30 --initialize-weights word2vec --learn-embeddings
+    # python fast_text.py -f model_word2vec -d 100 --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
+    

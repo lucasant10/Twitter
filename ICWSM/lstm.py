@@ -161,8 +161,10 @@ def lstm_model(sequence_length, embedding_dim):
     model.add(Dropout(0.25))
     model.add(LSTM(50))
     model.add(Dropout(0.5))
-    model.add(Dense(len(set(tw_class)),  activation= 'softmax' ))
-    model.compile(loss=LOSS_FUN, optimizer=OPTIMIZER, metrics=['accuracy'])
+    #model.add(Dense(len(set(tw_class)),  activation= 'softmax' ))
+    #model.compile(loss=LOSS_FUN, optimizer=OPTIMIZER, metrics=['accuracy'])
+    model.add(Dense(len(set(tw_class)), activation='sigmoid'))
+    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
     print(model.summary())
     return model
 
@@ -275,11 +277,12 @@ if __name__ == "__main__":
     cf.read("../file_path.properties")
     path = dict(cf.items("file_path"))
     dir_w2v = path['dir_w2v']
+    dir_in = path['dir_in']
 
     word2vec_model = gensim.models.Word2Vec.load(dir_w2v+W2VEC_MODEL_FILE)
 
     tp = TextProcessor()
-    doc_list, tw_class = load_files(dir_w2v)
+    doc_list, tw_class = load_files(dir_in)
     tweets = tp.text_process(doc_list, text_only=True)
     tweets = select_tweets(tweets)
 
@@ -297,5 +300,5 @@ if __name__ == "__main__":
     model = lstm_model(data.shape[1], EMBEDDING_DIM)
     train_LSTM(data, y, model, EMBEDDING_DIM, W)
 
-    # lstm.py -f model_word2vec -d 200 --loss categorical_crossentropy --optimizer adam --initialize-weights random --learn-embeddings --epochs 10 --batch-size 30
+    # lstm.py -f model_word2vec -d 100 --loss categorical_crossentropy --optimizer adam --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
     
