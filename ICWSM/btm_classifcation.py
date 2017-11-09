@@ -46,20 +46,27 @@ if __name__ == '__main__':
     voca = btm.read_voca(dir_btm + "voca.txt")
     inv_voca = {v: k for k, v in voca.items()}
 
-    print("Loading baseline file " )
-    baseline = list()
+    print("Loading politcs_text " )
+    politcs_text = list()
+    tweets = open(dir_in + "tweets_politicos.txt", "r")
+    for l in tweets:
+        politcs_text.append(l.split())
+
+    print("Loading non politcs_text " )
+    n_politcs_text = list()
     tweets = open(dir_in + "tweets_nao_politicos.txt", "r")
     for l in tweets:
-        baseline.append(l.split())
+        n_politcs_text.append(l.split())
 
-    dist_topics = list()
+    dist_politics = list()
+    dist_n_politics = list()
     k_list = [2,3,4,5]
     for i in k_list:
         assing_topics = list()
         print("Reading topic %s" %i )
-        pz_pt = dir_btm + "output\k"+ str(i) +".pz"
+        pz_pt = dir_btm + "model/k"+ str(i) +".pz"
         pz = btm.read_pz(pz_pt)
-        zw_pt = dir_btm + "output\k"+ str(i) +".pw_z"
+        zw_pt = dir_btm + "model/k"+ str(i) +".pw_z"
 
         print("Processing topic %s" %i )
         k = 0
@@ -73,8 +80,9 @@ if __name__ == '__main__':
             topics.append(wvs)
             k += 1
 
-        print("Assing topics to baseline tweets")
-        for t in baseline:
+        print("Assing politics topics")
+        assing_politcs = list()
+        for t in politcs_text:
             tw_topics = list()
             for tp in topics:
                 tmp = 0
@@ -82,39 +90,86 @@ if __name__ == '__main__':
                     if w in inv_voca:
                         tmp += tp[inv_voca[w]]
                 tw_topics.append(tmp)
-            assing_topics.append(tw_topics.index(max(tw_topics)))
-        dist_topics.append(assing_topics)
+            assing_politcs.append(tw_topics.index(max(tw_topics)))
+        dist_politics.append(assing_politcs)
 
-    print("Saving file btm_dist_topics")
 
-    max_coef = list()
-    gini_coef = list()
-    f =  open(dir_in+"btm_nao_politicos.txt", 'w')
-    for i, dist in enumerate(dist_topics):
-        counter = np.bincount(dist)
-        dist = np.round( counter/np.sum(counter), 2)
-        max_coef.append(max(dist))
-        gini_coef.append( gini(dist))
-        f.write("topic %s: " %(i) + str(dist) + "\n\n")
+        print("Assing non politics topics")
+        assing_n_politcs = list()
+        for t in n_politcs_text:
+            tw_topics = list()
+            for tp in topics:
+                tmp = 0
+                for w in t:
+                    if w in inv_voca:
+                        tmp += tp[inv_voca[w]]
+                tw_topics.append(tmp)
+            assing_n_politcs.append(tw_topics.index(max(tw_topics)))
+        dist_n_politics.append(assing_n_politcs)
+
+
+    print("Saving files")
+    max_coef_politics = list()
+    gini_coef_politics = list()
+    dist_kl_politics = list()
+    f = open(dir_in+"btm_politicos.txt", 'w')
+    f.write("-- political topics distribution -- \n\n")
+    for i, dist in enumerate(dist_politics):
+        c_politics = np.bincount(dist)
+        politics_dist = np.round(c_politics/np.sum(c_politics), 2)
+        dist_kl_politics.append(politics_dist)
+        max_coef_politics.append(max(politics_dist))
+        gini_coef_politics.append(gini(politics_dist))
+        f.write("topic %s: " % (i+2) + str(politics_dist) + "\n\n")
+
+    f.write("-- non political topics distribution -- \n\n")
+    max_coef_n_politics = list()
+    gini_coef_n_politics = list()
+    dist_kl_n_politics = list()
+    idx_n_politics = list()
+    for i, dist in enumerate(dist_n_politics):
+        c_n_politics = np.bincount(dist)
+        politics_n_dist = np.round(c_n_politics/np.sum(c_n_politics), 2)
+        dist_kl_n_politics.append(politics_n_dist)
+        max_coef_n_politics.append(max(politics_n_dist))
+        idx_n_politics.append(np.argmax(politics_n_dist))
+        gini_coef_n_politics.append(gini(politics_n_dist))
+        f.write("topic %s: " % (i+2) + str(politics_n_dist) + "\n\n")
+   
+    f.write("-- KL Divergence -- \n\n")
+
+    for i, dist in enumerate(dist_kl_politics):
+        f.write("Kl Topicos %s: %s \n" %((i+2), np.round(kl(dist, dist_kl_n_politics[i]), 2)))
+
     f.close()
 
     fig = plt.figure()
-    ax = fig.add_subplot(111)    
+    ax = fig.add_subplot(111)
     ax.set_title("Tweets Politicos")
     ax.set_xlabel("Topicos K")
     ax.set_ylabel("Max da distribuicao")
-    ax.set_ylim(0,1)
-    ax.plot(k_list,max_coef,'-o')
+    ax.set_ylim(0, 1)
+    ax.plot(k_list, max_coef_politics, '-o', color="red", label='politicos')
+    ax.plot(k_list, max_coef_n_politics, '-o', color ="blue", label='nao politicos')
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels)
     plt.show()
     plt.clf()
 
-
     fig = plt.figure()
-    ax = fig.add_subplot(111)    
+    ax = fig.add_subplot(111)
     ax.set_title("Tweets Politicos")
     ax.set_xlabel("Topicos K")
     ax.set_ylabel("Gini coefficient")
-    ax.set_ylim(0,1)
-    ax.plot(k_list,gini_coef,'-o')
+    ax.set_ylim(0, 1)
+    ax.plot(k_list, gini_coef_politics, '-o', color="red", label='politicos')
+    ax.plot(k_list, gini_coef_n_politics, '-o', color ="blue",  label='nao politicos')
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(handles, labels)
+    for i, idx in enumerate(idx_n_politics):
+        ax.annotate('%s' %idx, xy=(k_list[i],gini_coef_politics[i]), xytext=(0,-5), textcoords='offset points')
+    for i, idx in enumerate(idx_n_politics):
+        ax.annotate('%s' %idx, xy=(k_list[i],gini_coef_n_politics[i]), xytext=(0,5), textcoords='offset points')
     plt.show()
     plt.clf()
+

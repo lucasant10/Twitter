@@ -65,7 +65,6 @@ if __name__ == '__main__':
 
         print("Assing politics topics")
         assing_politcs = list()
-        assing_n_politcs = list()
         for txt in bow_politics:
             assing_politcs.append(np.argmax([x[1] for x in model[txt]]))
         dist_politics.append(assing_politcs)
