@@ -1,7 +1,6 @@
 import sys
 sys.path.append('../')
 import configparser
-from text_processor import TextProcessor
 import topic_BTM as btm
 import numpy as np
 from matplotlib import pyplot as plt
@@ -42,7 +41,6 @@ if __name__ == '__main__':
     dir_btm = path['dir_btm']
     dir_in = path['dir_in']
 
-    tp = TextProcessor()
 
     print("Reading vocab " )
     voca = btm.read_voca(dir_btm + "voca.txt")
