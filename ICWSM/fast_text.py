@@ -53,7 +53,7 @@ word2vec_model = None
 
 def load_files(dir_in):
     doc_list = list()
-    tw_files = ([file for root, dirs, files in os.walk(dir_in)
+    tw_files = sorted([file for root, dirs, files in os.walk(dir_in)
                  for file in files if file.endswith('.json')])
     tw_class = list()
     print(tw_files)
@@ -133,7 +133,7 @@ def filter_vocab(k):
 
 def gen_sequence():
     y_map = dict()
-    for i, v in enumerate(set(tw_class)):
+    for i, v in enumerate(sorted(set(tw_class))):
         y_map[v] = i
     print(y_map)
 
@@ -155,7 +155,7 @@ def shuffle_weights(model):
 
 def fast_text_model(sequence_length):
     model = Sequential()
-    model.add(Embedding(len(vocab)+1, EMBEDDING_DIM, input_length=sequence_length))
+    model.add(Embedding(len(vocab)+1, EMBEDDING_DIM, input_length=sequence_length, trainable=LEARN_EMBEDDINGS))
     model.add(Dropout(0.5))
     model.add(GlobalAveragePooling1D())
     #model.add(Dense(len(set(tw_class)), activation='softmax'))
@@ -283,6 +283,9 @@ if __name__ == "__main__":
 
     model = fast_text_model(data.shape[1])
     train_fast_text(data, y, model, EMBEDDING_DIM, W)
+    model.save(dir_in + "model_fast_text.h5")
+    np.save(dir_in + 'dict_fast_text.npy', vocab)
+
 
     # python fast_text.py -f model_word2vec -d 100 --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
     

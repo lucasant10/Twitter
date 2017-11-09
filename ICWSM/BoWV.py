@@ -13,6 +13,7 @@ from sklearn.ensemble  import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.svm import SVC, LinearSVC
 from sklearn.model_selection import KFold
 from sklearn.linear_model import LogisticRegression
+from sklearn.externals import joblib
 from sklearn.utils import shuffle
 import gensim, sklearn
 from collections import defaultdict
@@ -54,7 +55,7 @@ word2vec_model = None
 
 def load_files(dir_in):
     doc_list = list()
-    tw_files = ([file for root, dirs, files in os.walk(dir_in)
+    tw_files = sorted([file for root, dirs, files in os.walk(dir_in)
                  for file in files if file.endswith('.json')])
     tw_class = list()
     for tw_file in tw_files:
@@ -71,7 +72,7 @@ def load_files(dir_in):
 
 def gen_data(tweets, tw_class):
     y_map = dict()
-    for i, v in enumerate(set(tw_class)):
+    for i, v in enumerate(sorted(set(tw_class))):
         y_map[v] = i
     print(y_map)
 
@@ -129,7 +130,8 @@ def classification_model(X, Y, model_type=None):
     print("Model Type:", model_type)
 
     #predictions = cross_val_predict(logreg, X, Y, cv=NO_OF_FOLDS)
-    scores1 = cross_val_score(get_model(model_type), X, Y, cv=NO_OF_FOLDS, scoring='precision_weighted')
+    model = get_model(model_type)
+    scores1 = cross_val_score(model.fit(X,Y), X, Y, cv=NO_OF_FOLDS, scoring='precision_weighted')
     print("Precision(avg): %0.3f (+/- %0.3f)" % (scores1.mean(), scores1.std() * 2))
 
     scores2 = cross_val_score(get_model(model_type), X, Y, cv=NO_OF_FOLDS, scoring='recall_weighted')
@@ -138,6 +140,7 @@ def classification_model(X, Y, model_type=None):
     scores3 = cross_val_score(get_model(model_type), X, Y, cv=NO_OF_FOLDS, scoring='f1_weighted')
     print("F1-score(avg): %0.3f (+/- %0.3f)" % (scores3.mean(), scores3.std() * 2))
 
+    return model
 
 if __name__ == "__main__":
 
@@ -181,7 +184,9 @@ if __name__ == "__main__":
 
     X, Y = gen_data(tweets, tw_class)
 
-    classification_model(X, Y, MODEL_TYPE)
+    model = classification_model(X, Y, MODEL_TYPE)
+    joblib.dump(model, dir_in + MODEL_TYPE + '.skl')
+
 
     # python BoWV.py --model logistic --seed 42 -f model_word2vec -d 100 --folds 10
     # python BoWV.py --model gradient_boosting --seed 42 -f model_word2vec -d 100 --loss deviance --folds 10

@@ -53,7 +53,7 @@ word2vec_model = None
 
 def load_files(dir_in):
     doc_list = list()
-    tw_files = ([file for root, dirs, files in os.walk(dir_in)
+    tw_files = sorted([file for root, dirs, files in os.walk(dir_in)
                  for file in files if file.endswith('.json')])
     tw_class = list()
     for tw_file in tw_files:
@@ -205,10 +205,9 @@ def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
                 except Exception as e:
                     print(e)
                     print(y_temp)
-                print(x.shape, y.shape)
                 loss, acc = model.train_on_batch(
                     x, y_temp, class_weight=class_weights)
-                print("Loss: %d, Acc: %d"%(loss, acc))
+                #print("Loss: %d, Acc: %d"%(loss, acc))
 
         y_pred = model.predict_on_batch(X_test)
         y_pred = np.argmax(y_pred, axis=1)
@@ -299,6 +298,9 @@ if __name__ == "__main__":
 
     model = lstm_model(data.shape[1], EMBEDDING_DIM)
     train_LSTM(data, y, model, EMBEDDING_DIM, W)
+    model.save(dir_in + "model_lstm.h5")
+    np.save(dir_in + 'dict_lstm.npy', vocab)
+
 
     # lstm.py -f model_word2vec -d 100 --loss categorical_crossentropy --optimizer adam --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
     

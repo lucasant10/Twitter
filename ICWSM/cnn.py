@@ -18,6 +18,7 @@ import os
 import configparser
 from text_processor import TextProcessor
 import json
+import h5py
 
 
 ### Preparing the text data
@@ -53,7 +54,7 @@ word2vec_model = None
 
 def load_files(dir_in):
     doc_list = list()
-    tw_files = ([file for root, dirs, files in os.walk(dir_in)
+    tw_files = sorted([file for root, dirs, files in os.walk(dir_in)
                  for file in files if file.endswith('.json')])
     tw_class = list()
     for tw_file in tw_files:
@@ -132,7 +133,7 @@ def filter_vocab(k):
 
 def gen_sequence():
     y_map = dict()
-    for i, v in enumerate(set(tw_class)):
+    for i, v in enumerate(sorted(set(tw_class))):
         y_map[v] = i
     print(y_map)
 
@@ -159,8 +160,8 @@ def cnn_model(sequence_length, embedding_dim):
     n_classes = NO_OF_CLASSES
     embedding_dim = EMBEDDING_DIM
     filter_sizes = (3, 4, 5)
-    num_filters = 100
-    dropout_prob = (0.25, 0.5)
+    num_filters = 120
+    dropout_prob = (0.25, 0.25)
     hidden_dims = 100
 
     # Training parameters
@@ -264,6 +265,7 @@ def train_CNN(X, y, inp_dim, model, weights, epochs=EPOCHS, batch_size=BATCH_SIZ
     print("average precision is %f" % (p1/NO_OF_FOLDS))
     print("average recall is %f" % (r1/NO_OF_FOLDS))
     print("average f1 is %f" % (f11/NO_OF_FOLDS))
+    return model
 
 
 if __name__ == "__main__":
@@ -328,7 +330,9 @@ if __name__ == "__main__":
     data, y = sklearn.utils.shuffle(data, y)
     W = get_embedding_weights()
     model = cnn_model(data.shape[1], EMBEDDING_DIM)
-    train_CNN(data, y, EMBEDDING_DIM, model, W)
+    model = train_CNN(data, y, EMBEDDING_DIM, model, W)
+    model.save(dir_in + "model_cnn.h5")
+    np.save(dir_in + 'dict_cnn.npy', vocab)
 
 
 #python cnn.py -f model_word2vec -d 50 --loss categorical_crossentropy --optimizer adam --epochs 10 --batch-size 30 --initialize-weights word2vec --scale-loss-function
