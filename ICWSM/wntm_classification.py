@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
     dist_n_politics = list()
     dist_politics = list()
-    k_list = [2, 3, 4]
+    k_list = [2, 3, 4, 5]
 
     for k in k_list:
         print("processing model %sk " % k)
@@ -53,13 +53,13 @@ if __name__ == '__main__':
 
         print("Loading tweets_politicos file ")
         bow_politics = list()
-        tweets = open(dir_in + "tweets_politicos.txt", "r")
+        tweets = open(dir_in + "politicos.txt", "r")
         for l in tweets:
             bow_politics.append(vocab.doc2bow(l.split()))
 
         print("Loading tweets_nao_politicos file ")
         bow_n_politics = list()
-        tweets = open(dir_in + "tweets_nao_politicos.txt", "r")
+        tweets = open(dir_in + "nao_politicos.txt", "r")
         for l in tweets:
             bow_n_politics.append(vocab.doc2bow(l.split()))
 
@@ -79,32 +79,41 @@ if __name__ == '__main__':
     max_coef_politics = list()
     gini_coef_politics = list()
     dist_kl_politics = list()
+    idx_politics = list()
     f = open(dir_in+"wntm_politicos.txt", 'w')
     f.write("-- political topics distribution -- \n\n")
     for i, dist in enumerate(dist_politics):
         c_politics = np.bincount(dist)
         politics_dist = np.round(c_politics/np.sum(c_politics), 2)
-        dist_kl_politics.append(politics_dist)
+        z = list(zip(range(len(politics_dist)), politics_dist))
+        print(politics_dist)
+        dist_kl_politics.append(z)
         max_coef_politics.append(max(politics_dist))
+        idx_politics.append(np.argmax(politics_dist))
         gini_coef_politics.append(gini(politics_dist))
-        f.write("topic %s: " % (i+2) + str(politics_dist) + "\n\n")
+        f.write("topic %s: " % (i+2) + str(['%0.2f' %x[1] for x in z]) + "\n\n")
 
     f.write("-- non political topics distribution -- \n\n")
     max_coef_n_politics = list()
     gini_coef_n_politics = list()
     dist_kl_n_politics = list()
+    idx_n_politics = list()
     for i, dist in enumerate(dist_n_politics):
         c_n_politics = np.bincount(dist)
         politics_n_dist = np.round(c_n_politics/np.sum(c_n_politics), 2)
-        dist_kl_n_politics.append(politics_n_dist)
+        z = list(zip(range(len(politics_n_dist)), politics_n_dist))
+        print(politics_n_dist)
+        dist_kl_n_politics.append(z)
         max_coef_n_politics.append(max(politics_n_dist))
+        idx_n_politics.append(np.argmax(politics_n_dist))
         gini_coef_n_politics.append(gini(politics_n_dist))
-        f.write("topic %s: " % (i+2) + str(politics_n_dist) + "\n\n")
+        f.write("topic %s: " % (i+2) +  str(['%0.2f' %x[1] for x in z])  + "\n\n")
    
     f.write("-- KL Divergence -- \n\n")
-
     for i, dist in enumerate(dist_kl_politics):
-        f.write("Kl Topicos %s: %s \n" %((i+2), np.round(kl(dist, dist_kl_n_politics[i]), 2)))
+        p = [x[1] for x in dist]
+        q = [y[1] for y in dist_kl_n_politics[i]]
+        f.write("Kl Topicos %s: %s \n" %((i+2), np.round(kl(p,q), 2)))
 
     f.close()
 
@@ -118,8 +127,13 @@ if __name__ == '__main__':
     ax.plot(k_list, max_coef_n_politics, '-o', color ="blue", label='nao politicos')
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles, labels)
+    for i, idx in enumerate(idx_politics):
+        ax.annotate('%s' %idx, xy=(k_list[i],max_coef_politics[i]), xytext=(0,-10), textcoords='offset points')
+    for i, idx in enumerate(idx_n_politics):
+        ax.annotate('%s' %idx, xy=(k_list[i],max_coef_n_politics[i]), xytext=(0,5), textcoords='offset points')
     plt.show()
     plt.clf()
+    plt.close()
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -131,5 +145,9 @@ if __name__ == '__main__':
     ax.plot(k_list, gini_coef_n_politics, '-o', color ="blue",  label='nao politicos')
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles, labels)
+    for i, idx in enumerate(idx_politics):
+        ax.annotate('%s' %idx, xy=(k_list[i],gini_coef_politics[i]), xytext=(0,-10), textcoords='offset points')
+    for i, idx in enumerate(idx_n_politics):
+        ax.annotate('%s' %idx, xy=(k_list[i],gini_coef_n_politics[i]), xytext=(0,5), textcoords='offset points')
     plt.show()
     plt.clf()

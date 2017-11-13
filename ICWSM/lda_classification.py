@@ -1,119 +1,86 @@
 import sys
 sys.path.append('../')
 import configparser
-import topic_BTM as btm
+import gensim
 import numpy as np
 from matplotlib import pyplot as plt
 
 
 def gini(data):
     def _unit_area(height, value, width):
-        bar_area = (height * width) + ((value * width) / 2.) 
-        return bar_area      
-    fair_area = 0.5 
+        bar_area = (height * width) + ((value * width) / 2.)
+        return bar_area
+    fair_area = 0.5
     datasum = float(sum(data))
-    if datasum==0:
+    if datasum == 0:
         import sys
-        m = 'Data sum is 0.0.\nCannot calculate Gini coefficient for non-responsive population.' 
+        m = 'Data sum is 0.0.\nCannot calculate Gini coefficient for non-responsive population.'
         print(m)
         sys.exit()
-    if datasum!=1.0:
+    if datasum != 1.0:
         data = [x/datasum for x in data]
     data.sort()
     width = 1/float(len(data))
-    height, area = 0.0, 0.0 
+    height, area = 0.0, 0.0
     for value in data:
         area += _unit_area(height, value, width)
         height += value
     gini = (fair_area-area)/fair_area
     return gini
 
+
 def kl(p, q):
     p = np.asarray(p, dtype=np.float)
     q = np.asarray(q, dtype=np.float)
-    return np.sum(np.where(p != 0,(p-q) * np.log10(p / q), 0))
-
+    return np.sum(np.where(p != 0, (p-q) * np.log10(p / q), 0))
 
 if __name__ == '__main__':
+
     cf = configparser.ConfigParser()
     cf.read("../file_path.properties")
     path = dict(cf.items("file_path"))
-    dir_btm = path['dir_btm']
+    dir_lda = path['dir_lda']
     dir_in = path['dir_in']
 
-
-    print("Reading vocab " )
-    voca = btm.read_voca(dir_btm + "voca_wntm.txt")
-    inv_voca = {v: k for k, v in voca.items()}
-
-    print("Loading politcs_text " )
-    politcs_text = list()
-    tweets = open(dir_in + "politicos.txt", "r")
-    for l in tweets:
-        politcs_text.append(l.split())
-
-    print("Loading non politcs_text " )
-    n_politcs_text = list()
-    tweets = open(dir_in + "nao_politicos.txt", "r")
-    for l in tweets:
-        n_politcs_text.append(l.split())
-
-    dist_politics = list()
     dist_n_politics = list()
-    k_list = [2,3,4,5]
-    for i in k_list:
-        assing_topics = list()
-        print("Reading topic %s" %i )
-        pz_pt = dir_btm + "model_wntm/k"+ str(i) +".pz"
-        pz = btm.read_pz(pz_pt)
-        zw_pt = dir_btm + "model_wntm/k"+ str(i) +".pw_z"
+    dist_politics = list()
+    k_list = [2, 3, 4, 5]
 
-        print("Processing topic %s" %i )
-        k = 0
-        topics = []
-        vectors = np.zeros((len(pz), len(inv_voca)))
-        for k, l in enumerate(open(zw_pt)):
-            vs = [float(v) for v in l.split()]
-            vectors[k, :] = vs
-            wvs = zip(range(len(vs)), vs)
-            wvs = dict(sorted(wvs, key=lambda d: d[1], reverse=True))
-            topics.append(wvs)
-            k += 1
+    for k in k_list:
+        print("processing model %sk " % k)
+        model = gensim.models.LdaModel.load(dir_lda + "lda_model_%s.lda" % k)
+        vocab = model.id2word
+
+        print("Loading tweets_politicos file ")
+        bow_politics = list()
+        tweets = open(dir_in + "tweets_politicos.txt", "r")
+        for l in tweets:
+            bow_politics.append(vocab.doc2bow(l.split()))
+
+        print("Loading tweets_nao_politicos file ")
+        bow_n_politics = list()
+        tweets = open(dir_in + "tweets_nao_politicos.txt", "r")
+        for l in tweets:
+            bow_n_politics.append(vocab.doc2bow(l.split()))
 
         print("Assing politics topics")
         assing_politcs = list()
-        for t in politcs_text:
-            tw_topics = list()
-            for tp in topics:
-                tmp = 0
-                for w in t:
-                    if w in inv_voca:
-                        tmp += tp[inv_voca[w]]
-                tw_topics.append(tmp)
-            assing_politcs.append(tw_topics.index(max(tw_topics)))
+        for txt in bow_politics:
+            assing_politcs.append(np.argmax([x[1] for x in model[txt]]))
         dist_politics.append(assing_politcs)
 
-
-        print("Assing non politics topics")
+        print("Assing not politics topics")
         assing_n_politcs = list()
-        for t in n_politcs_text:
-            tw_topics = list()
-            for tp in topics:
-                tmp = 0
-                for w in t:
-                    if w in inv_voca:
-                        tmp += tp[inv_voca[w]]
-                tw_topics.append(tmp)
-            assing_n_politcs.append(tw_topics.index(max(tw_topics)))
+        for txt in bow_n_politics:
+            assing_n_politcs.append(np.argmax([x[1] for x in model[txt]]))
         dist_n_politics.append(assing_n_politcs)
-
 
     print("Saving files")
     max_coef_politics = list()
     gini_coef_politics = list()
     dist_kl_politics = list()
     idx_politics = list()
-    f = open(dir_in+"wntm_btm_politicos.txt", 'w')
+    f = open(dir_in+"lda_politicos.txt", 'w')
     f.write("-- political topics distribution -- \n\n")
     for i, dist in enumerate(dist_politics):
         c_politics = np.bincount(dist)
@@ -184,4 +151,3 @@ if __name__ == '__main__':
         ax.annotate('%s' %idx, xy=(k_list[i],gini_coef_n_politics[i]), xytext=(0,5), textcoords='offset points')
     plt.show()
     plt.clf()
-

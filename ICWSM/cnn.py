@@ -311,7 +311,10 @@ if __name__ == "__main__":
     dir_w2v = path['dir_w2v']
     dir_in = path['dir_in']
 
-    word2vec_model = gensim.models.Word2Vec.load(dir_w2v+W2VEC_MODEL_FILE)
+    #word2vec_model = gensim.models.Word2Vec.load(dir_w2v+W2VEC_MODEL_FILE)
+    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
+                                                   binary=False,
+                                                   unicode_errors="ignore")
 
     tp = TextProcessor()
     doc_list, tw_class = load_files(dir_in)
@@ -331,9 +334,10 @@ if __name__ == "__main__":
     W = get_embedding_weights()
     model = cnn_model(data.shape[1], EMBEDDING_DIM)
     model = train_CNN(data, y, EMBEDDING_DIM, model, W)
-    model.save(dir_in + "model_cnn.h5")
-    np.save(dir_in + 'dict_cnn.npy', vocab)
+    model.save(dir_w2v + "model_cnn.h5")
+    np.save(dir_w2v + 'dict_cnn.npy', vocab)
 
 
 #python cnn.py -f model_word2vec -d 50 --loss categorical_crossentropy --optimizer adam --epochs 10 --batch-size 30 --initialize-weights word2vec --scale-loss-function
 #python cnn.py -f model_word2vec -d 100 --loss categorical_crossentropy --optimizer adam --epochs 10 --batch-size 30 --initialize-weights word2vec --learn-embeddings
+#python cnn.py -f cbow_s100.txt  -d 100 --loss categorical_crossentropy --optimizer adam --epochs 10 --batch-size 30 --initialize-weights word2vec --learn-embeddings

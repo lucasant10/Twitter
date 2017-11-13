@@ -278,7 +278,11 @@ if __name__ == "__main__":
     dir_w2v = path['dir_w2v']
     dir_in = path['dir_in']
 
-    word2vec_model = gensim.models.Word2Vec.load(dir_w2v+W2VEC_MODEL_FILE)
+    #word2vec_model = gensim.models.Word2Vec.load(dir_w2v+W2VEC_MODEL_FILE)
+    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
+                                                   binary=False,
+                                                   unicode_errors="ignore")
+
 
     tp = TextProcessor()
     doc_list, tw_class = load_files(dir_in)
@@ -298,9 +302,11 @@ if __name__ == "__main__":
 
     model = lstm_model(data.shape[1], EMBEDDING_DIM)
     train_LSTM(data, y, model, EMBEDDING_DIM, W)
-    model.save(dir_in + "model_lstm.h5")
-    np.save(dir_in + 'dict_lstm.npy', vocab)
+    model.save(dir_w2v + "model_lstm.h5")
+    np.save(dir_w2v + 'dict_lstm.npy', vocab)
 
 
     # lstm.py -f model_word2vec -d 100 --loss categorical_crossentropy --optimizer adam --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
+    # lstm.py -f cbow_s100.txt -d 100 --loss categorical_crossentropy --optimizer adam --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
     
+

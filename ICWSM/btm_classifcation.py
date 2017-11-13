@@ -48,13 +48,13 @@ if __name__ == '__main__':
 
     print("Loading politcs_text " )
     politcs_text = list()
-    tweets = open(dir_in + "tweets_politicos.txt", "r")
+    tweets = open(dir_in + "politicos.txt", "r")
     for l in tweets:
         politcs_text.append(l.split())
 
     print("Loading non politcs_text " )
     n_politcs_text = list()
-    tweets = open(dir_in + "tweets_nao_politicos.txt", "r")
+    tweets = open(dir_in + "nao_politicos.txt", "r")
     for l in tweets:
         n_politcs_text.append(l.split())
 
@@ -166,6 +166,7 @@ if __name__ == '__main__':
         ax.annotate('%s' %idx, xy=(k_list[i],max_coef_n_politics[i]), xytext=(0,5), textcoords='offset points')
     plt.show()
     plt.clf()
+    plt.close()
 
     fig = plt.figure()
     ax = fig.add_subplot(111)

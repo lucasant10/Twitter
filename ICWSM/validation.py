@@ -90,7 +90,10 @@ if __name__ == "__main__":
     dir_w2v = path['dir_w2v']
     dir_val = path['dir_val']
 
-    word2vec_model = gensim.models.Word2Vec.load(dir_w2v + W2VEC_MODEL_FILE)
+    #word2vec_model = gensim.models.Word2Vec.load(dir_w2v + W2VEC_MODEL_FILE)
+    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
+                                                   binary=False,
+                                                   unicode_errors="ignore")
     model = load_model(dir_w2v + cnn_model)
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
     vocab = np.load(dir_w2v + dictfile).item()
@@ -110,3 +113,6 @@ if __name__ == "__main__":
 #python validation.py -f model_word2vec -m model_cnn.h5 -d dict_cnn.npy -l 18
 #python validation.py -f model_word2vec -m model_lstm.h5 -d dict_lstm.npy -l 18
 #python validation.py -f model_word2vec -m model_fast_text.h5 -d dict_fast_text.npy -l 18
+
+#python validation.py -f cbow_s100.txt -m model_cnn.h5 -d dict_cnn.npy -l 18
+#python validation.py -f cbow_s100.txt -m model_lstm.h5 -d dict_lstm.npy -l 18
