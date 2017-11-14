@@ -2,9 +2,18 @@ import sys
 sys.path.append('../')
 import argparse
 import configparser
-from text_processor import TextProcessor
 import json
 import os
+import math
+import codecs
+from collections import Counter
+import numpy as np
+from matplotlib import pyplot as plt
+
+def month_tw(time):
+    first = 1380585600000
+    month= 2419200000
+    return math.ceil((time - first)/month)
 
 def load_files(dir_in):
     doc_list = list()
@@ -19,30 +28,44 @@ def load_files(dir_in):
                 tweet = json.loads(line)
                 time = int(tweet['created_at'])
                 if(1380585600000 <= time <= 1506816000000 ):
-                    temp.append((tweet['text'], time))
+                    temp.append(tweet)
         doc_list.append(temp)
     return doc_list, tw_files
 
+def save_file(path, filename, dic_file):
+    for dirs, tweets in dic_file.items():
+        os.makedirs(os.path.dirname(dirs), exist_ok=True)
+        f = codecs.open(dirs + filename, 'a', 'utf-8')
+        for tw in tweets:
+            json.dump(tw, f)
+        f.close()
 
 if __name__ == "__main__":
     
     cf = configparser.ConfigParser()
     cf.read("../file_path.properties")
     path = dict(cf.items("file_path"))
-    dir_in = path['dir_val']
+    dir_in = path['dir_in']
 
-    tp = TextProcessor()
-    tweets = list()
+    count = Counter()
+    tweet = list()
     doc_list, tw_files = load_files(dir_in)
-    for tw in doc_list:
-        tw = sorted([tw], key=lambda x: x[1], reverse=True)
-        tweets.append(tp.text_process(txt, text_only=True))
-
-    for i, fl in enumerate(tw_files):
-        f =  open(dir_in+"%s.txt" % fl.split('.')[0], 'w')
-        for tw in tweets[i]:
-            f.write(" ".join(tw) + "\n")
-
-        f.close()
-
-
+    for i, tweet in enumerate(doc_list):
+        temp = dict()
+        for tw in tweet:
+            month = month_tw(int(tw['created_at']))
+            count[month] += 1
+            path =  dir_in + str(month) + os.path.sep
+            if path not in temp:
+                temp[path] = [tw]
+            else:
+                temp[path].append(tw)
+        save_file(path, tw_files[i], temp)
+    
+    np.save(dir_in+'tw_counter_distribution.npy', count) 
+    labels, values = zip(*sorted(count.items(), key=lambda i: i[0]))
+    indexes = np.arange(len(labels))
+    width = 1
+    plt.bar(indexes, values, width)
+    plt.xticks(indexes + width * 0.5, labels)
+    plt.show()
