@@ -80,7 +80,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     W2VEC_MODEL_FILE = args.embeddingfile
-    cnn_model = args.modelfile
+    arg_model = args.modelfile
     dictfile = args.dictfile
     maxlen = int(args.maxlen)
     
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
                                                    binary=False,
                                                    unicode_errors="ignore")
-    model = load_model(dir_w2v + cnn_model)
+    model = load_model(dir_w2v + arg_model)
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
     vocab = np.load(dir_w2v + dictfile).item()
     tp = TextProcessor()

@@ -40,6 +40,15 @@ def save_file(path, filename, dic_file):
             json.dump(tw, f)
         f.close()
 
+def prepare_text(counter, samples):
+    l = list(counter.items())
+    arr = np.asarray([x[0] for x in l])
+    arr = arr/sum(arr) * samples
+    txt = ''
+    for i, v in enumerate(num):
+        txt += 'month %s : %s \n' %((i+1), int(v)) 
+    return txt
+
 if __name__ == "__main__":
     
     cf = configparser.ConfigParser()
@@ -63,6 +72,9 @@ if __name__ == "__main__":
         save_file(path, tw_files[i], temp)
     
     np.save(dir_in+'tw_counter_distribution.npy', count) 
+    with open(dir_in + 'samples_per_folder.txt', 'w') as out:
+        out.write(prepare_text(count, 1000))
+
     labels, values = zip(*sorted(count.items(), key=lambda i: i[0]))
     indexes = np.arange(len(labels))
     width = 1
