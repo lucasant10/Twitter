@@ -43,20 +43,23 @@ if __name__ == "__main__":
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
     tweets = db.tweets.find(
-        {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}})
+        {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(1000)
 
     pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 18)
 
     p_count = Counter()
     n_p_count = Counter()
-    print('processing tweets ...')
+    
     for tweet in tweets:
+        print('processing tweets: %s' %tweet)    
         month = month_tw(int(tweet['created_at']))
         if pc.is_political(tweet['text_processed']):
             p_count[month] += 1
         else:
             n_p_count[month] += 1
 
+    print(p_count)
+    print(n_p_count)
     if SAVE:
         cf = configparser.ConfigParser()
         cf.read("../file_path.properties")
@@ -76,12 +79,13 @@ if __name__ == "__main__":
     _, n_p_values = zip(*sorted(n_p_count.items(), key=lambda i: i[0]))
 
     figure = plt.figure(figsize=(15, 8))
-    plt.hist([
-        p_values,
-        n_p_values
-    ],
-        stacked=True, color=['b', 'r'],
-        bins=len(labels), label=['Politcal, Non Political'])
+    ind = np.arange(len(labels))
+    width = 0.35
+    plt.bar(ind, p_values, width)
+    plt.bar(ind, n_p_values, width)
+    plt.xticks(ind)
+    plt.legend(['Politcal', 'Non Political'])
     plt.xlabel('Months since oct/13 until oct/17')
     plt.ylabel('Number of tweets')
-    plt.legend()
+
+    plt.show()
