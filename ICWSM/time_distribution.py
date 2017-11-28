@@ -7,6 +7,8 @@ from matplotlib import pyplot as plt
 import pymongo
 from political_classification import PoliticalClassification
 import math
+import random
+from collections import Counter
 
 
 def month_tw(time):
@@ -47,7 +49,8 @@ def plot_dist(p_values, n_p_values, labels, deputy):
 
 
 def plot_hist(dist, title):
-    plt.hist(dist)
+    num_bins = 50
+    plt.hist(dist, num_bins)
     plt.title("%s Tweets Histogram" % title)
     plt.xlabel("Percent of %s" % title)
     plt.ylabel("Number of Deputies")
@@ -61,10 +64,12 @@ if __name__ == "__main__":
     parser.add_argument('--save',
                         action='store_true', default=False)
     parser.add_argument('-d', '--deputy')
+    parser.add_argument('-c', '--condition')
 
     args = parser.parse_args()
     SAVE = args.save
     deputy = args.deputy
+    condition = args.condition
 
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
@@ -73,16 +78,21 @@ if __name__ == "__main__":
         tweets = db.tweets.find(
             {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000},
              'user_name': deputy})
+    elif condition is not None:
+        tweets = db.tweets.find(
+            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000},
+             '$or': [{'cond_55': condition}, {'cond_54': condition}]}).limit(10000)
     else:
         tweets = db.tweets.find(
-            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(200000)
+            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(100000)
+    
 
     pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 18)
 
-    p_count = {x: 0 for x in range(1, 55)}
-    n_p_count = {x: 0 for x in range(1, 55)}
-    p_count_dep = dict()
-    n_p_count_dep = dict()
+    p_count = {x: 0 for x in range(1, 54)}
+    n_p_count = {x: 0 for x in range(1, 54)}
+    p_count_dep = Counter()
+    n_p_count_dep = Counter()
 
     print('processing tweets ...')
     for tweet in tweets:
@@ -118,19 +128,23 @@ if __name__ == "__main__":
             out.write(prepare_text(n_p_count, 1000))
 
     print('plotting distribution ...')
+    map_l = {'novos':'New', 'reeleitos':'Reelected', 'nao_eleitos':'Not Elected'}
     labels, p_values = zip(*sorted(p_count.items(), key=lambda i: i[0]))
     _, n_p_values = zip(*sorted(n_p_count.items(), key=lambda i: i[0]))
 
-    # total = sum(p_values + n_p_values)
-    # p_values = np.asarray(p_values) / total
-    # n_p_values = np.asarray(n_p_values) / total
-    p_dep_dist = np.asarray([i[1] for i in p_count_dep.items()])
-    n_p_dep_dist = np.asarray([i[1] for i in n_p_count_dep.items()])
-
-    p_dep_dist = p_dep_dist / (np.sum(p_dep_dist) + np.sum(n_p_dep_dist))
+    dist_p = list()
+    dist_n_p = list()
+    for i, v in p_count_dep.items():
+        dist_p.append(v / (v + n_p_count_dep[i]))
+        dist_n_p.append(n_p_count_dep[i] / (v + n_p_count_dep[i]))
 
     if deputy is not None:
         plot_dist(p_values, n_p_values, labels, deputy)
+    elif condition is not None:
+        plot_dist(p_values, n_p_values, labels, None)
+        plot_hist(dist_p, "%s Political" % map_l[condition])
+        plot_hist(dist_n_p, "%s Non Political" % map_l[condition])
     else:
         plot_dist(p_values, n_p_values, labels, None)
-        plot_hist(p_dep_dist, "Political")
+        plot_hist(dist_p, "Political")
+        plot_hist(dist_n_p, "Non Political")
