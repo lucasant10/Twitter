@@ -55,7 +55,6 @@ def plot_hist(dist, title):
     plt.xlabel("Percent of %s" % title)
     plt.ylabel("Number of Deputies")
     plt.show()
-    plt.clf()
 
 
 if __name__ == "__main__":
@@ -80,12 +79,10 @@ if __name__ == "__main__":
              'user_name': deputy})
     elif condition is not None:
         tweets = db.tweets.find(
-            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000},
-             '$or': [{'cond_55': condition}, {'cond_54': condition}]}).limit(10000)
+            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000},'cond_55': condition}).limit(10000)
     else:
         tweets = db.tweets.find(
-            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(100000)
-    
+            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(10000)
 
     pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 18)
 
@@ -93,23 +90,39 @@ if __name__ == "__main__":
     n_p_count = {x: 0 for x in range(1, 54)}
     p_count_dep = Counter()
     n_p_count_dep = Counter()
-
+    p_party = dict()
+    n_p_party = dict()
     print('processing tweets ...')
     for tweet in tweets:
         month = month_tw(int(tweet['created_at']))
         parl = tweet['user_name']
-        if pc.is_political(tweet['text_processed']):
-            p_count[month] += 1
-            if parl in p_count_dep:
-                p_count_dep[parl] += 1
+        
+        if 'party' in tweet:
+            party = tweet['party']
+            if pc.is_political(tweet['text_processed']):
+                p_count[month] += 1
+                if party in p_party:
+                    p_party[party][month] += 1
+                else:
+                    p_party[party] = Counter({x: 0 for x in range(1, 54)})
+                    p_party[party][month] += 1
+
+                if parl in p_count_dep:
+                    p_count_dep[parl] += 1
+                else:
+                    p_count_dep[parl] = 1
             else:
-                p_count_dep[parl] = 1
-        else:
-            n_p_count[month] += 1
-            if parl in n_p_count_dep:
-                n_p_count_dep[parl] += 1
-            else:
-                n_p_count_dep[parl] = 1
+                n_p_count[month] += 1
+                if party in n_p_party:
+                    n_p_party[party][month] += 1
+                else:
+                    n_p_party[party] = Counter({x: 0 for x in range(1, 54)})
+                    n_p_party[party][month] += 1
+
+                if parl in n_p_count_dep:
+                    n_p_count_dep[parl] += 1
+                else:
+                    n_p_count_dep[parl] = 1
 
     print(p_count)
     print(n_p_count)
@@ -128,7 +141,8 @@ if __name__ == "__main__":
             out.write(prepare_text(n_p_count, 1000))
 
     print('plotting distribution ...')
-    map_l = {'novos':'New', 'reeleitos':'Reelected', 'nao_eleitos':'Not Elected'}
+    map_l = {'novos': 'Elected', 'reeleitos': 'Reelected',
+             'nao_eleitos': 'Not Elected'}
     labels, p_values = zip(*sorted(p_count.items(), key=lambda i: i[0]))
     _, n_p_values = zip(*sorted(n_p_count.items(), key=lambda i: i[0]))
 
@@ -148,3 +162,7 @@ if __name__ == "__main__":
         plot_dist(p_values, n_p_values, labels, None)
         plot_hist(dist_p, "Political")
         plot_hist(dist_n_p, "Non Political")
+        for party, counter in p_party.items():
+            labels, p_values = zip(*sorted(counter.items(), key=lambda i: i[0]))
+            _, n_p_values = zip(*sorted(n_p_party[party].items(), key=lambda i: i[0]))
+            plot_dist(p_values, n_p_values, labels, party)
