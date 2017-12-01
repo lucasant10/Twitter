@@ -8,7 +8,7 @@ import pymongo
 from political_classification import PoliticalClassification
 import math
 import random
-from collections import Counter
+from collections import Counter, defaultdict
 
 
 def month_tw(time):
@@ -38,23 +38,33 @@ def plot_dist(p_values, n_p_values, labels, deputy):
     ax.legend((p1[0], p2[0]), ('Politcal', 'Non Political'))
     ax.set_xlabel('Months from oct/13 to oct/17')
     ax.set_ylabel('Number of tweets')
-
-    if deputy is not None:
-        ax.set_title("%s - Tweets Distribution Over Time" % deputy)
-
-    else:
-        ax.set_title("Tweets Distribution Over Time")
-    plt.show()
+    ax.set_title("%s  Distribution Over Time" % deputy)
+    plt.savefig(dir_in + "%s_distribution.png" % deputy)
     plt.clf()
 
 
 def plot_hist(dist, title):
-    num_bins = 50
+    num_bins = 20
     plt.hist(dist, num_bins)
     plt.title("%s Tweets Histogram" % title)
     plt.xlabel("Percent of %s" % title)
     plt.ylabel("Number of Deputies")
-    plt.show()
+    plt.savefig(dir_in + "%s_histogram.png" % title)
+    plt.clf()
+
+
+def plot_cdf(dist):
+    figure = plt.figure(figsize=(15, 8))
+    num_bins = 20
+    ax = figure.add_subplot(111)
+    for cond, values in dist.items():
+        ax.hist(values, num_bins, normed=False, label=cond,
+                cumulative=True, histtype='step')
+    ax.set_xlabel('Percentage of political posts')
+    ax.set_ylabel('Number of deputies')
+    ax.set_title("Cumulatative Distributuion")
+    plt.savefig(dir_in + "cdf_tweets.png")
+    plt.clf()
 
 
 if __name__ == "__main__":
@@ -70,6 +80,11 @@ if __name__ == "__main__":
     deputy = args.deputy
     condition = args.condition
 
+    cf = configparser.ConfigParser()
+    cf.read("../file_path.properties")
+    path = dict(cf.items("file_path"))
+    dir_in = path['dir_in']
+
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
 
@@ -79,25 +94,27 @@ if __name__ == "__main__":
              'user_name': deputy})
     elif condition is not None:
         tweets = db.tweets.find(
-            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000},'cond_55': condition}).limit(10000)
+            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': condition})
     else:
         tweets = db.tweets.find(
-            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(10000)
+            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(30000)
 
     pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 18)
 
     p_count = {x: 0 for x in range(1, 54)}
     n_p_count = {x: 0 for x in range(1, 54)}
-    p_count_dep = Counter()
-    n_p_count_dep = Counter()
+    p_count_dep = defaultdict(int)
+    n_p_count_dep = defaultdict(int)
+    dep_set_dict = defaultdict(set)
     p_party = dict()
     n_p_party = dict()
     print('processing tweets ...')
     for tweet in tweets:
         month = month_tw(int(tweet['created_at']))
         parl = tweet['user_name']
-        
+        cond = tweet['cond_55']
         if 'party' in tweet:
+            dep_set_dict[cond].add(parl)
             party = tweet['party']
             if pc.is_political(tweet['text_processed']):
                 p_count[month] += 1
@@ -107,10 +124,8 @@ if __name__ == "__main__":
                     p_party[party] = Counter({x: 0 for x in range(1, 54)})
                     p_party[party][month] += 1
 
-                if parl in p_count_dep:
-                    p_count_dep[parl] += 1
-                else:
-                    p_count_dep[parl] = 1
+                p_count_dep[parl] += 1
+
             else:
                 n_p_count[month] += 1
                 if party in n_p_party:
@@ -119,18 +134,11 @@ if __name__ == "__main__":
                     n_p_party[party] = Counter({x: 0 for x in range(1, 54)})
                     n_p_party[party][month] += 1
 
-                if parl in n_p_count_dep:
-                    n_p_count_dep[parl] += 1
-                else:
-                    n_p_count_dep[parl] = 1
+                n_p_count_dep[parl] += 1
 
     print(p_count)
     print(n_p_count)
     if SAVE:
-        cf = configparser.ConfigParser()
-        cf.read("../file_path.properties")
-        path = dict(cf.items("file_path"))
-        dir_in = path['dir_in']
 
         np.save(dir_in + 'pol_counter_distribution.npy', p_count)
         np.save(dir_in + 'non_pol_counter_distribution.npy', n_p_count)
@@ -147,22 +155,31 @@ if __name__ == "__main__":
     _, n_p_values = zip(*sorted(n_p_count.items(), key=lambda i: i[0]))
 
     dist_p = list()
-    dist_n_p = list()
     for i, v in p_count_dep.items():
         dist_p.append(v / (v + n_p_count_dep[i]))
-        dist_n_p.append(n_p_count_dep[i] / (v + n_p_count_dep[i]))
+
+    dist_cond = dict()
+    print(dep_set_dict)
+    print(p_count_dep)
+    for cond, dep_set in dep_set_dict.items():
+        p_temp = list()
+        for dep in dep_set:
+            count = p_count_dep[dep]
+            p_temp.append(count / (count + n_p_count_dep[dep]))
+        dist_cond[cond] = p_temp
 
     if deputy is not None:
         plot_dist(p_values, n_p_values, labels, deputy)
     elif condition is not None:
-        plot_dist(p_values, n_p_values, labels, None)
+        plot_dist(p_values, n_p_values, labels, "")
         plot_hist(dist_p, "%s Political" % map_l[condition])
-        plot_hist(dist_n_p, "%s Non Political" % map_l[condition])
     else:
-        plot_dist(p_values, n_p_values, labels, None)
+        plot_dist(p_values, n_p_values, labels, "")
         plot_hist(dist_p, "Political")
-        plot_hist(dist_n_p, "Non Political")
+        plot_cdf(dist_cond)
         for party, counter in p_party.items():
-            labels, p_values = zip(*sorted(counter.items(), key=lambda i: i[0]))
-            _, n_p_values = zip(*sorted(n_p_party[party].items(), key=lambda i: i[0]))
+            labels, p_values = zip(
+                *sorted(counter.items(), key=lambda i: i[0]))
+            _, n_p_values = zip(
+                *sorted(n_p_party[party].items(), key=lambda i: i[0]))
             plot_dist(p_values, n_p_values, labels, party)
