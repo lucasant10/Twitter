@@ -19,7 +19,8 @@ import configparser
 from text_processor import TextProcessor
 import json
 import h5py
-
+import pymongo
+from political_classification import PoliticalClassification
 
 def select_tweets(tweets):
     # selects the tweets as in mean_glove_embedding method
@@ -64,51 +65,47 @@ def gen_sequence():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='CNN based models for politics twitter')
-    parser.add_argument('-f', '--embeddingfile', required=True)
     parser.add_argument('-m', '--modelfile', required=True)
     parser.add_argument('-d', '--dictfile', required=True)
     parser.add_argument('-l', '--maxlen', required=True)
+    parser.add_argument('--db',
+                        action='store_true', default=False)
 
     
     args = parser.parse_args()
-
-    W2VEC_MODEL_FILE = args.embeddingfile
     arg_model = args.modelfile
     dictfile = args.dictfile
     maxlen = int(args.maxlen)
+    database = args.db
     
     cf = configparser.ConfigParser()
     cf.read("../file_path.properties")
     path = dict(cf.items("file_path"))
-    dir_w2v = path['dir_w2v']
-    dir_in = path['dir_in']
+    dir_ale = path['dir_ale']
 
-    print('loading word_embeddings')
-    word2vec_model = gensim.models.Word2Vec.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
-                                                   binary=False,
-                                                   unicode_errors="ignore")
-    print('loading w2v model')
-    model = load_model(dir_w2v + arg_model)
-    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
-    vocab = np.load(dir_w2v + dictfile).item()
-    tp = TextProcessor()
-    print('loading files')
-    doc_list, tw_class = load_files(dir_in)
-    tweets = tp.text_process(doc_list, text_only=True)
-    tweets = select_tweets(tweets)
-    x = gen_sequence()
-    data = pad_sequences(x, maxlen=maxlen)
-    print('predicting')
-    y_pred = model.predict(data)
-    y_pred = np.argmax(y_pred, axis=1)
+    pc = PoliticalClassification(arg_model, dictfile, maxlen)
+
     txt = ''
-    for i, v in enumerate(y_pred):
-        if v == 0:
-            txt += ' '.join(tweets[i]) + '\n'
-
-    f = open(dir_in + "politics_text.txt", 'w')
+    if database:
+        print('loading from mongodb')
+        client = pymongo.MongoClient("mongodb://localhost:27017")
+        db = client.twitterdb
+        tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}})
+        for tw in tweets:
+            if pc.is_political(tw['text_processed']):
+                txt += tw['text_processed'] + '\n'
+    else:    
+        tp = TextProcessor()
+        print('loading from files')
+        doc_list, tw_class = load_files(dir_ale)
+        tmp = tp.text_process(doc_list, text_only=True)
+        for tw in tmp:
+            if pc.is_political(' '.join(tw)):
+                txt += ' '.join(tw) + '\n'
+                print(' '.join(tw))
+    f = open(dir_ale + "politics_text.txt", 'w')
     f.write(txt)
     f.close()
 
 
-#python select_politics.py -f cbow_s100.txt -m model_lstm.h5 -d dict_lstm.npy -l 18
+#python select_politics.py -f cbow_s100.txt -m model_lstm.h5 -d dict_lstm.npy -l 18 --db

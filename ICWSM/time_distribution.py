@@ -47,7 +47,7 @@ def plot_hist(dist, title):
     num_bins = 20
     plt.hist(dist, num_bins)
     plt.title("%s Tweets Histogram" % title)
-    plt.xlabel("Percent of %s" % title)
+    plt.xlabel("Percentage of %s" % title)
     plt.ylabel("Number of Deputies")
     plt.savefig(dir_in + "%s_histogram.png" % title)
     plt.clf()
@@ -58,12 +58,23 @@ def plot_cdf(dist):
     num_bins = 20
     ax = figure.add_subplot(111)
     for cond, values in dist.items():
-        ax.hist(values, num_bins, normed=False, label=cond,
+        ax.hist(values, num_bins, normed=True, label=cond,
                 cumulative=True, histtype='step')
-    ax.set_xlabel('Percentage of political posts')
-    ax.set_ylabel('Number of deputies')
+    ax.legend(loc='upper left')
+    ax.set_xlabel('Percentage of political tweets')
+    ax.set_ylabel('Percentage of deputies')
     ax.set_title("Cumulatative Distributuion")
     plt.savefig(dir_in + "cdf_tweets.png")
+    plt.clf()
+
+def plot_disp(dist_tw, dist_p):
+    figure = plt.figure(figsize=(15, 8))
+    ax = figure.add_subplot(111)
+    ax.plot(dist_tw, dist_p, 'o')
+    ax.set_xlabel('Number of tweets')
+    ax.set_ylabel('Percentage of political posts')
+    ax.set_title("Proportion of political tweets by number of tweets")
+    plt.savefig(dir_in + "disp_tweets.png")
     plt.clf()
 
 
@@ -96,8 +107,8 @@ if __name__ == "__main__":
         tweets = db.tweets.find(
             {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': condition})
     else:
-        tweets = db.tweets.find(
-            {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}}).limit(30000)
+        #tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000} }).limit(30000)
+        tweets = db.tweets.aggregate([ { '$sample': { 'size': 30000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ])
 
     pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 18)
 
@@ -155,8 +166,10 @@ if __name__ == "__main__":
     _, n_p_values = zip(*sorted(n_p_count.items(), key=lambda i: i[0]))
 
     dist_p = list()
+    dist_tw = list()
     for i, v in p_count_dep.items():
         dist_p.append(v / (v + n_p_count_dep[i]))
+        dist_tw.append(v + n_p_count_dep[i])
 
     dist_cond = dict()
     print(dep_set_dict)
@@ -177,6 +190,7 @@ if __name__ == "__main__":
         plot_dist(p_values, n_p_values, labels, "")
         plot_hist(dist_p, "Political")
         plot_cdf(dist_cond)
+        plot_disp(dist_tw, dist_p)
         for party, counter in p_party.items():
             labels, p_values = zip(
                 *sorted(counter.items(), key=lambda i: i[0]))
