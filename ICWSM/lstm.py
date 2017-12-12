@@ -4,7 +4,7 @@ import argparse
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Embedding, Input, LSTM
 from keras.models import Sequential, Model
-from keras.layers import Activation, Dense, Dropout, Embedding, Flatten, Input, Merge, Convolution1D, MaxPooling1D, GlobalMaxPooling1D, Bidirectional
+from keras.layers import Activation, Dense, Dropout, Bidirectional
 import numpy as np
 from sklearn.metrics import make_scorer, f1_score, accuracy_score, recall_score, precision_score, classification_report, precision_recall_fscore_support
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
@@ -64,7 +64,7 @@ def load_files(dir_in):
     tw_class = list()
     for tw_file in tw_files:
         temp = list()
-        with open(dir_in+tw_file) as data_file:
+        with open(dir_in + tw_file) as data_file:
             for line in data_file:
                 tweet = json.loads(line)
                 temp.append(tweet['text'])
@@ -98,7 +98,7 @@ def get_embedding_weights():
 
 def select_tweets(tweets):
     # selects the tweets as in mean_glove_embedding method
-    # Processing       
+    # Processing
     X, Y = [], []
     tweet_return = []
     for tweet in tweets:
@@ -117,10 +117,10 @@ def gen_vocab(model_vec):
     vocab['UNK'] = len(vocab) + 1
     print(vocab['UNK'])
     return vocab
-    
+
+
 def filter_vocab(k):
     global freq, vocab
-    pdb.set_trace()
     freq_sorted = sorted(freq.items(), key=operator.itemgetter(1))
     tokens = freq_sorted[:k]
     vocab = dict(zip(tokens, range(1, len(tokens) + 1)))
@@ -153,15 +153,16 @@ def lstm_model(sequence_length, embedding_dim):
     model_variation = 'LSTM'
     print('Model variation is %s' % model_variation)
     model = Sequential()
-    model.add(Embedding(len(vocab)+1, embedding_dim,
+    model.add(Embedding(len(vocab) + 1, embedding_dim,
                         input_length=sequence_length, trainable=LEARN_EMBEDDINGS))
     model.add(Dropout(0.25))
     model.add(LSTM(50))
     model.add(Dropout(0.5))
-    #model.add(Dense(len(set(tw_class)),  activation= 'softmax' ))
-    #model.compile(loss=LOSS_FUN, optimizer=OPTIMIZER, metrics=['accuracy'])
+    # model.add(Dense(len(set(tw_class)),  activation= 'softmax' ))
+    # model.compile(loss=LOSS_FUN, optimizer=OPTIMIZER, metrics=['accuracy'])
     model.add(Dense(len(set(tw_class)), activation='sigmoid'))
-    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy',
+                  optimizer='rmsprop', metrics=['accuracy'])
     print(model.summary())
     return model
 
@@ -195,7 +196,7 @@ def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
                     class_weights = {}
                     for cw in range(len(set(tw_class))):
                         class_weights[cw] = np.where(y_temp == cw)[0].shape[
-                            0]/float(len(y_temp))
+                            0] / float(len(y_temp))
                 try:
                     y_temp = np_utils.to_categorical(
                         y_temp, num_classes=len(set(tw_class)))
@@ -204,7 +205,7 @@ def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
                     print(y_temp)
                 loss, acc = model.train_on_batch(
                     x, y_temp, class_weight=class_weights)
-                #print("Loss: %d, Acc: %d"%(loss, acc))
+                # print("Loss: %d, Acc: %d"%(loss, acc))
 
         y_pred = model.predict_on_batch(X_test)
         y_pred = np.argmax(y_pred, axis=1)
@@ -218,17 +219,20 @@ def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
         f11 += f1_score(y_test, y_pred, average='micro')
 
     print("macro results are")
-    print("average precision is %f" % (p/NO_OF_FOLDS))
-    print("average recall is %f" % (r/NO_OF_FOLDS))
-    print("average f1 is %f" % (f1/NO_OF_FOLDS))
+    print("average precision is %f" % (p / NO_OF_FOLDS))
+    print("average recall is %f" % (r / NO_OF_FOLDS))
+    print("average f1 is %f" % (f1 / NO_OF_FOLDS))
 
     print("micro results are")
-    print("average precision is %f" % (p1/NO_OF_FOLDS))
-    print("average recall is %f" % (r1/NO_OF_FOLDS))
-    print("average f1 is %f" % (f11/NO_OF_FOLDS))
+    print("average precision is %f" % (p1 / NO_OF_FOLDS))
+    print("average recall is %f" % (r1 / NO_OF_FOLDS))
+    print("average f1 is %f" % (f11 / NO_OF_FOLDS))
 
-    txt = 'average precision= %f average recall= %f  average F1= %f ' % ((p/NO_OF_FOLDS), (r/NO_OF_FOLDS), (f1/NO_OF_FOLDS))
+    txt = 'average precision \t average recall \t average F1'
+    txt = ' %f \t  %f \t %f ' % (
+        (p / NO_OF_FOLDS), (r / NO_OF_FOLDS), (f1 / NO_OF_FOLDS))
     return txt
+
 
 def get_tweets(db, sample, dimension):
     sample = math.floor(sample / 2)
@@ -237,13 +241,39 @@ def get_tweets(db, sample, dimension):
         tweets = db.politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
         tweets += db.non_politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
     elif dimension == 'few_parl':
-        tweets = db.politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
+        tmp = db.politics.aggregate(
+                [
+                    {'$group': {'_id': "$user_id", 'text': {
+                        '$push': "$text_processed"}, 'count': {'$sum': 1}}},
+                    {'$sort': {'count': -1}}
+                ]
+            )
+        x = 0
+        for tw in tmp:
+            if x <= sample:
+                tweets += tw['text'][:(sample - x)]
+                x += tw['count']
+        tmp = db.non_politics.aggregate(
+                [
+                    {'$group': {'_id': "$user_id", 'text': {'$push': "$text_processed"}, 'count': {'$sum': 1}}},
+                    {'$sort': {'count': -1}}
+                ]
+            )
+        x = 0
+        for tw in tmp:
+            if x <= sample:
+                tweets += tw['text'][:(sample - x)]
+                x += tw['count']
 
     else:
-        tweets = db.politics.aggregate({ '$sample': { 'size': sample }})
-        tweets += db.non_politics.aggregate({ '$sample': { 'size': sample }})
+        tmp = db.politics.aggregate([{ '$sample': { 'size': sample }}])
+        for tw in tmp:
+            tweets += tw['text_processed'].split(' ')
+        tmp = db.non_politics.aggregate([{ '$sample': { 'size': sample }}])
+        for tw in tmp:
+            tweets += tw['text_processed'].split(' ')
+    return tweets
     
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='LSTM based models for politics twitter')
@@ -303,14 +333,9 @@ if __name__ == "__main__":
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
     tweets = get_tweets(db, SAMPLE, DISPERSION)
-        
-    tp = TextProcessor()
-    doc_list, tw_class = load_files(dir_in)
-    tweets = tp.text_process(doc_list, text_only=True)
     tweets = select_tweets(tweets)
 
     vocab = gen_vocab(word2vec_model)
-    # filter_vocab(20000)
     X, y = gen_sequence(vocab)
     MAX_SEQUENCE_LENGTH = max(map(lambda x: len(x), X))
     print("max seq length is %d" % (MAX_SEQUENCE_LENGTH))
@@ -324,7 +349,7 @@ if __name__ == "__main__":
     txt = train_LSTM(data, y, model, EMBEDDING_DIM, W)
     model.save(dir_w2v + MODEL_NAME + ".h5")
     np.save(dir_w2v + DICT_NAME + '.npy', vocab)
-    f = open(dir_ale + "politics_text.txt", 'w')
+    f = open(dir_w2v + "trainned_params.txt", 'a+')
     f.write(txt)
     f.close()
 
