@@ -19,14 +19,14 @@ import configparser
 from text_processor import TextProcessor
 import json
 import h5py
+import pymongo
 
 
 def select_tweets(tweets, tw_class):
     # selects the tweets as in mean_glove_embedding method
-    # Processing       
-    X, Y = [], []
+    # Processing
     tweet_return = []
-    tweet_class = []
+    class_return = []
     for i, tweet in enumerate(tweets):
         _emb = 0
         for w in tweet:
@@ -34,43 +34,37 @@ def select_tweets(tweets, tw_class):
                 _emb += 1
         if _emb:   # Not a blank tweet
             tweet_return.append(tweet)
-            tweet_class.append(tw_class[i])
+            class_return.append(tw_class[i])
     print('Tweets selected:', len(tweet_return))
-    return tweet_return, tweet_class
+    return tweet_return, class_return
 
-def load_files(dir_in):
-    doc_list = list()
-    tw_files = sorted([file for root, dirs, files in os.walk(dir_in)
-                 for file in files if file.endswith('.json')])
-    tw_class = list()
-    for tw_file in tw_files:
-        temp = list()
-        with open(dir_in+tw_file) as data_file:
-            for line in data_file:
-                tweet = json.loads(line)
-                temp.append(tweet['text'])
-                doc_list.append(tweet['text'])
-                tw_class.append(tw_file.split(".")[0])
-    return doc_list, tw_class
-
-def gen_sequence():
-    y_map = dict()
-    for i, v in enumerate(sorted(set(tw_class))):
-        y_map[v] = i
-    print(y_map)
+def gen_sequence(vocab):
+    y_map = {'politics':0, 'non_politics':1}
     X, y = [], []
     for i, tweet in enumerate(tweets):
-        seq, _emb = [], []
+        seq = []
         for word in tweet:
             seq.append(vocab.get(word, vocab['UNK']))
         X.append(seq)
         y.append(y_map[tw_class[i]])
     return X, y
 
+def get_tweets(db):
+    tweets = list()
+    tw_class = list()
+    tmp = db.val_politics.find()
+    for tw in tmp:
+        tweets.append(tw['text_processed'].split(' '))
+        tw_class.append('politics')
 
-
+    tmp = db.val_non_politics.find()
+    for tw in tmp:
+        tweets.append(tw['text_processed'].split(' '))
+        tw_class.append('non_politics')
+    return tweets, tw_class
+        
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='CNN based models for politics twitter')
+    parser = argparse.ArgumentParser(description='Validation of politics twitter model')
     parser.add_argument('-f', '--embeddingfile', required=True)
     parser.add_argument('-m', '--modelfile', required=True)
     parser.add_argument('-d', '--dictfile', required=True)
@@ -90,25 +84,35 @@ if __name__ == "__main__":
     dir_w2v = path['dir_w2v']
     dir_val = path['dir_val']
 
-    #word2vec_model = gensim.models.Word2Vec.load(dir_w2v + W2VEC_MODEL_FILE)
-    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
+    print('loading vector model')
+    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v + W2VEC_MODEL_FILE,
                                                    binary=False,
                                                    unicode_errors="ignore")
-    model = load_model(dir_w2v + arg_model)
+    print('load w2v model')
+    model = load_model(dir_w2v + arg_model + '.h5')
     model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
-    vocab = np.load(dir_w2v + dictfile).item()
-    tp = TextProcessor()
-    doc_list, tw_class = load_files(dir_val)
-    tweets = tp.text_process(doc_list, text_only=True)
+    vocab = np.load(dir_w2v + dictfile + '.npy').item()
+
+    print('load tweets from db')
+    client = pymongo.MongoClient("mongodb://localhost:27017")
+    db = client.twitterdb
+    tweets, tw_class = get_tweets(db)
     tweets, tw_class = select_tweets(tweets, tw_class)
 
-    x, y = gen_sequence()
-    data = pad_sequences(x, maxlen=maxlen)
+    X, y = gen_sequence(vocab)
+    data = pad_sequences(X, maxlen=maxlen)
     y = np.array(y)
-
+    print('predicting')
     y_pred = model.predict_on_batch(data)
     y_pred = np.argmax(y_pred, axis=1)
-    print(classification_report(y, y_pred))
+    p, r, f, _ = precision_recall_fscore_support(y, y_pred, average='weighted')
+    txt = 'Validation \n\n'
+    txt += "{:<12} {:<12} {:<12}\n".format('avg precision', 'avg recall', 'avg F1')
+    txt += "%-13.2f %-12.2f %-12.2f \n\n" %  (p, r, f)
+    f = open(dir_w2v + "trainned_params.txt", 'a+')
+    f.write(txt)
+    f.close()
+
 
 #python validation.py -f model_word2vec -m model_cnn.h5 -d dict_cnn.npy -l 18
 #python validation.py -f model_word2vec -m model_lstm.h5 -d dict_lstm.npy -l 18

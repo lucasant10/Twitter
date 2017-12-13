@@ -22,13 +22,13 @@ loss=categorical_crossentropy
 
 epoch=20
 batch=30
-max_len=18
+max_len=16
 echo "=============== Training Neural Network ============="
-python $classification -f $embedding -d $dimension \
-		--loss $loss --initialize-weights $w_init --learn-embeddings \
-		--epochs $epoch --batch-size $batch \
-        --dict_name $dict --model_name $model_name \
-        --sample $sample --dispersion $dispersion
+# python $classification -f $embedding -d $dimension \
+# 		--loss $loss --initialize-weights $w_init --learn-embeddings \
+# 		--epochs $epoch --batch-size $batch \
+#         --dict_name $dict --model_name $model_name \
+#         --sample $sample --dispersion $dispersion
 
 echo "=============== Trained NN Validation ============="
-#python validation.py -f $embedding -m $model_name -d $dict -l $max_len
+python validation.py -f $embedding -m $model_name -d $dict -l $max_len

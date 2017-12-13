@@ -56,23 +56,6 @@ SAMPLE = 2000
 
 word2vec_model = None
 
-
-def load_files(dir_in):
-    doc_list = list()
-    tw_files = sorted([file for root, dirs, files in os.walk(dir_in)
-                 for file in files if file.endswith('.json')])
-    tw_class = list()
-    for tw_file in tw_files:
-        temp = list()
-        with open(dir_in + tw_file) as data_file:
-            for line in data_file:
-                tweet = json.loads(line)
-                temp.append(tweet['text'])
-                doc_list.append(tweet['text'])
-                tw_class.append(tw_file.split(".")[0])
-    return doc_list, tw_class
-
-
 def get_embedding(word):
     # return
     try:
@@ -96,20 +79,21 @@ def get_embedding_weights():
     return embedding
 
 
-def select_tweets(tweets):
+def select_tweets(tweets, tw_class):
     # selects the tweets as in mean_glove_embedding method
     # Processing
-    X, Y = [], []
     tweet_return = []
-    for tweet in tweets:
+    class_return = []
+    for i, tweet in enumerate(tweets):
         _emb = 0
         for w in tweet:
             if w in word2vec_model:  # Check if embeeding there in GLove model
                 _emb += 1
         if _emb:   # Not a blank tweet
             tweet_return.append(tweet)
+            class_return.append(tw_class[i])
     print('Tweets selected:', len(tweet_return))
-    return tweet_return
+    return tweet_return, class_return
 
 
 def gen_vocab(model_vec):
@@ -118,21 +102,8 @@ def gen_vocab(model_vec):
     print(vocab['UNK'])
     return vocab
 
-
-def filter_vocab(k):
-    global freq, vocab
-    freq_sorted = sorted(freq.items(), key=operator.itemgetter(1))
-    tokens = freq_sorted[:k]
-    vocab = dict(zip(tokens, range(1, len(tokens) + 1)))
-    vocab['UNK'] = len(vocab) + 1
-
-
 def gen_sequence(vocab):
-    y_map = dict()
-    for i, v in enumerate(set(tw_class)):
-        y_map[v] = i
-    print(y_map)
-
+    y_map = {'politics':0, 'non_politics':1}
     X, y = [], []
     for i, tweet in enumerate(tweets):
         seq = []
@@ -142,12 +113,10 @@ def gen_sequence(vocab):
         y.append(y_map[tw_class[i]])
     return X, y
 
-
 def shuffle_weights(model):
     weights = model.get_weights()
     weights = [np.random.permutation(w.flat).reshape(w.shape) for w in weights]
     model.set_weights(weights)
-
 
 def lstm_model(sequence_length, embedding_dim):
     model_variation = 'LSTM'
@@ -165,7 +134,6 @@ def lstm_model(sequence_length, embedding_dim):
                   optimizer='rmsprop', metrics=['accuracy'])
     print(model.summary())
     return model
-
 
 def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
                batch_size=BATCH_SIZE):
@@ -228,8 +196,8 @@ def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
     print("average recall is %f" % (r1 / NO_OF_FOLDS))
     print("average f1 is %f" % (f11 / NO_OF_FOLDS))
 
-    txt = 'average precision \t average recall \t average F1'
-    txt = ' %f \t  %f \t %f ' % (
+    txt += "{:<12} {:<12} {:<12}\n".format('avg precision', 'avg recall', 'avg F1')
+    txt += "%-13.2f %-12.2f %-12.2f \n\n" % (
         (p / NO_OF_FOLDS), (r / NO_OF_FOLDS), (f1 / NO_OF_FOLDS))
     return txt
 
@@ -237,9 +205,18 @@ def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
 def get_tweets(db, sample, dimension):
     sample = math.floor(sample / 2)
     tweets = list()
+    tw_class = list()
+
     if dimension == 'few_month':
-        tweets = db.politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
-        tweets += db.non_politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
+        tmp = db.politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
+        for tw in tmp:
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('politics')
+        tmp = db.non_politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
+        for tw in tmp:
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('non_politics')
+
     elif dimension == 'few_parl':
         tmp = db.politics.aggregate(
                 [
@@ -252,6 +229,7 @@ def get_tweets(db, sample, dimension):
         for tw in tmp:
             if x <= sample:
                 tweets += tw['text'][:(sample - x)]
+                tw_class += ['politics'] * (sample - x)
                 x += tw['count']
         tmp = db.non_politics.aggregate(
                 [
@@ -263,16 +241,22 @@ def get_tweets(db, sample, dimension):
         for tw in tmp:
             if x <= sample:
                 tweets += tw['text'][:(sample - x)]
+                tw_class += ['non_politics'] * (sample - x)
                 x += tw['count']
+        tweets = [t.split(' ') for t in tweets]
 
     else:
         tmp = db.politics.aggregate([{ '$sample': { 'size': sample }}])
         for tw in tmp:
-            tweets += tw['text_processed'].split(' ')
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('politics')
+
         tmp = db.non_politics.aggregate([{ '$sample': { 'size': sample }}])
         for tw in tmp:
-            tweets += tw['text_processed'].split(' ')
-    return tweets
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('non_politics')
+
+    return tweets, tw_class
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -332,8 +316,8 @@ if __name__ == "__main__":
 
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
-    tweets = get_tweets(db, SAMPLE, DISPERSION)
-    tweets = select_tweets(tweets)
+    tweets, tw_class = get_tweets(db, SAMPLE, DISPERSION)
+    tweets, tw_class = select_tweets(tweets, tw_class)
 
     vocab = gen_vocab(word2vec_model)
     X, y = gen_sequence(vocab)
@@ -346,7 +330,8 @@ if __name__ == "__main__":
     W = get_embedding_weights()
 
     model = lstm_model(data.shape[1], EMBEDDING_DIM)
-    txt = train_LSTM(data, y, model, EMBEDDING_DIM, W)
+    txt = 'LSTM, word vector - %s, db size - %s, dispersion - %s \n' % (W2VEC_MODEL_FILE, SAMPLE, DISPERSION)
+    txt += train_LSTM(data, y, model, EMBEDDING_DIM, W)
     model.save(dir_w2v + MODEL_NAME + ".h5")
     np.save(dir_w2v + DICT_NAME + '.npy', vocab)
     f = open(dir_w2v + "trainned_params.txt", 'a+')
