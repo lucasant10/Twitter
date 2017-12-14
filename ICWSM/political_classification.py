@@ -29,5 +29,5 @@ class PoliticalClassification:
         data = pad_sequences(X, maxlen= self.maxlen)
         y_pred = self.model.predict(data)
         y_pred = np.argmax(y_pred, axis=1)
-        return True if y_pred == 0 else False
+        return True if y_pred == 1 else False
         

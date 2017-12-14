@@ -22,11 +22,13 @@ from text_processor import TextProcessor
 import json
 import pymongo
 import math
+from f_map import F_map
 
 # Preparing the text data
 texts = []  # list of text samples
 labels_index = {}  # dictionary mapping label name to numeric id
 labels = []  # list of label ids
+txt = ''
 
 # vocab generation
 vocab, reverse_vocab = {}, {}
@@ -43,7 +45,7 @@ CLASS_WEIGHT = None
 LOSS_FUN = None
 OPTIMIZER = None
 KERNEL = None
-MAX_SEQUENCE_LENGTH = None
+MAX_SEQUENCE_LENGTH = 18
 INITIALIZE_WEIGHTS_WITH = None
 LEARN_EMBEDDINGS = None
 EPOCHS = 10
@@ -51,10 +53,11 @@ BATCH_SIZE = 512
 SCALE_LOSS_FUN = None
 MODEL_NAME = 'lstm_model'
 DICT_NAME = 'lstm_dict'
-DISPERSION = 'uniform'
+DISPERSION = 'random'
 SAMPLE = 2000
 
 word2vec_model = None
+
 
 def get_embedding(word):
     # return
@@ -102,8 +105,9 @@ def gen_vocab(model_vec):
     print(vocab['UNK'])
     return vocab
 
+
 def gen_sequence(vocab):
-    y_map = {'politics':0, 'non_politics':1}
+    y_map = {'politics': 0, 'non_politics': 1}
     X, y = [], []
     for i, tweet in enumerate(tweets):
         seq = []
@@ -113,10 +117,12 @@ def gen_sequence(vocab):
         y.append(y_map[tw_class[i]])
     return X, y
 
+
 def shuffle_weights(model):
     weights = model.get_weights()
     weights = [np.random.permutation(w.flat).reshape(w.shape) for w in weights]
     model.set_weights(weights)
+
 
 def lstm_model(sequence_length, embedding_dim):
     model_variation = 'LSTM'
@@ -134,6 +140,7 @@ def lstm_model(sequence_length, embedding_dim):
                   optimizer='rmsprop', metrics=['accuracy'])
     print(model.summary())
     return model
+
 
 def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
                batch_size=BATCH_SIZE):
@@ -196,10 +203,7 @@ def train_LSTM(X, y, model, inp_dim, weights, epochs=EPOCHS,
     print("average recall is %f" % (r1 / NO_OF_FOLDS))
     print("average f1 is %f" % (f11 / NO_OF_FOLDS))
 
-    txt += "{:<12} {:<12} {:<12}\n".format('avg precision', 'avg recall', 'avg F1')
-    txt += "%-13.2f %-12.2f %-12.2f \n\n" % (
-        (p / NO_OF_FOLDS), (r / NO_OF_FOLDS), (f1 / NO_OF_FOLDS))
-    return txt
+    return ((p / NO_OF_FOLDS), (r / NO_OF_FOLDS), (f1 / NO_OF_FOLDS))
 
 
 def get_tweets(db, sample, dimension):
@@ -207,7 +211,7 @@ def get_tweets(db, sample, dimension):
     tweets = list()
     tw_class = list()
 
-    if dimension == 'few_month':
+    if dimension == 'few_months':
         tmp = db.politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
         for tw in tmp:
             tweets.append(tw['text_processed'].split(' '))
@@ -217,47 +221,51 @@ def get_tweets(db, sample, dimension):
             tweets.append(tw['text_processed'].split(' '))
             tw_class.append('non_politics')
 
-    elif dimension == 'few_parl':
+    elif dimension == 'few_parls':
         tmp = db.politics.aggregate(
-                [
-                    {'$group': {'_id': "$user_id", 'text': {
-                        '$push': "$text_processed"}, 'count': {'$sum': 1}}},
-                    {'$sort': {'count': -1}}
-                ]
-            )
+            [
+                {'$group': {'_id': "$user_id", 'text': {
+                    '$push': "$text_processed"}, 'count': {'$sum': 1}}},
+                {'$sort': {'count': -1}}
+            ]
+        )
         x = 0
         for tw in tmp:
             if x <= sample:
                 tweets += tw['text'][:(sample - x)]
-                tw_class += ['politics'] * (sample - x)
                 x += tw['count']
+        tw_class += ['politics'] * len(tweets)
         tmp = db.non_politics.aggregate(
-                [
-                    {'$group': {'_id': "$user_id", 'text': {'$push': "$text_processed"}, 'count': {'$sum': 1}}},
-                    {'$sort': {'count': -1}}
-                ]
-            )
+            [
+                {'$group': {'_id': "$user_id", 'text': {
+                    '$push': "$text_processed"}, 'count': {'$sum': 1}}},
+                {'$sort': {'count': -1}}
+            ]
+        )
         x = 0
+        bf = len(tweets)
         for tw in tmp:
             if x <= sample:
                 tweets += tw['text'][:(sample - x)]
-                tw_class += ['non_politics'] * (sample - x)
                 x += tw['count']
+        tw_class += ['non_politics'] * (len(tweets) - bf)
+        print('tamnho tw_class: %i' % len(tw_class))
         tweets = [t.split(' ') for t in tweets]
 
     else:
-        tmp = db.politics.aggregate([{ '$sample': { 'size': sample }}])
+        tmp = db.politics.aggregate([{'$sample': {'size': sample}}])
         for tw in tmp:
             tweets.append(tw['text_processed'].split(' '))
             tw_class.append('politics')
 
-        tmp = db.non_politics.aggregate([{ '$sample': { 'size': sample }}])
+        tmp = db.non_politics.aggregate([{'$sample': {'size': sample}}])
         for tw in tmp:
             tweets.append(tw['text_processed'].split(' '))
             tw_class.append('non_politics')
 
     return tweets, tw_class
-    
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='LSTM based models for politics twitter')
@@ -310,9 +318,9 @@ if __name__ == "__main__":
     dir_w2v = path['dir_w2v']
     dir_in = path['dir_in']
 
-    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
-                                                   binary=False,
-                                                   unicode_errors="ignore")
+    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v + W2VEC_MODEL_FILE,
+                                                                     binary=False,
+                                                                     unicode_errors="ignore")
 
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
@@ -321,7 +329,7 @@ if __name__ == "__main__":
 
     vocab = gen_vocab(word2vec_model)
     X, y = gen_sequence(vocab)
-    MAX_SEQUENCE_LENGTH = max(map(lambda x: len(x), X))
+    #MAX_SEQUENCE_LENGTH = max(map(lambda x: len(x), X))
     print("max seq length is %d" % (MAX_SEQUENCE_LENGTH))
 
     data = pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH)
@@ -330,17 +338,15 @@ if __name__ == "__main__":
     W = get_embedding_weights()
 
     model = lstm_model(data.shape[1], EMBEDDING_DIM)
-    txt = 'LSTM, word vector - %s, db size - %s, dispersion - %s \n' % (W2VEC_MODEL_FILE, SAMPLE, DISPERSION)
-    txt += train_LSTM(data, y, model, EMBEDDING_DIM, W)
+    p, r, f1 = train_LSTM(data, y, model, EMBEDDING_DIM, W)
     model.save(dir_w2v + MODEL_NAME + ".h5")
     np.save(dir_w2v + DICT_NAME + '.npy', vocab)
-    f = open(dir_w2v + "trainned_params.txt", 'a+')
+    txt = '%i, %i, %i, %i, %i, %.2f, %.2f, %.2f, ' % (F_map.get_id('LSTM'), F_map.get_id(W2VEC_MODEL_FILE),
+                                   F_map.get_id(EMBEDDING_DIM), F_map.get_id(SAMPLE), F_map.get_id(DISPERSION),
+                                   p, r, f1)
+    f = open(dir_w2v + "trainned_params.txt", 'a')
     f.write(txt)
     f.close()
 
-
-
     # lstm.py -f model_word2vec -d 100 --loss categorical_crossentropy --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
     # lstm.py -f cbow_s100.txt -d 100 --loss categorical_crossentropy --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
-    
-

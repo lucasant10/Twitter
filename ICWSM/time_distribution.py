@@ -72,6 +72,7 @@ def plot_disp(dist_tw, dist_p):
     ax = figure.add_subplot(111)
     ax.plot(dist_tw, dist_p, 'o')
     ax.set_xlabel('Number of tweets')
+    ax.set_xscale('log')
     ax.set_ylabel('Percentage of political posts')
     ax.set_title("Proportion of political tweets by number of tweets")
     plt.savefig(dir_in + "disp_tweets.png")
@@ -107,10 +108,10 @@ if __name__ == "__main__":
         tweets = db.tweets.find(
             {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': condition})
     else:
-        #tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000} }).limit(30000)
-        tweets = db.tweets.aggregate([ { '$sample': { 'size': 30000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ])
+        tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} })
+        #tweets = db.tweets.aggregate([ { '$sample': { 'size': 30000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ])
 
-    pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 18)
+    pc = PoliticalClassification('word2vec_bow_s300.h5', 'dict_word2vec_bow_s300.npy', 18)
 
     p_count = {x: 0 for x in range(1, 54)}
     n_p_count = {x: 0 for x in range(1, 54)}

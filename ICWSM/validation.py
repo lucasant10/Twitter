@@ -106,10 +106,8 @@ if __name__ == "__main__":
     y_pred = model.predict_on_batch(data)
     y_pred = np.argmax(y_pred, axis=1)
     p, r, f, _ = precision_recall_fscore_support(y, y_pred, average='weighted')
-    txt = 'Validation \n\n'
-    txt += "{:<12} {:<12} {:<12}\n".format('avg precision', 'avg recall', 'avg F1')
-    txt += "%-13.2f %-12.2f %-12.2f \n\n" %  (p, r, f)
-    f = open(dir_w2v + "trainned_params.txt", 'a+')
+    txt = '%.2f, %.2f, %.2f \n' % (p, r, f)
+    f = open(dir_w2v + "trainned_params.txt", 'a')
     f.write(txt)
     f.close()
 
