@@ -139,7 +139,7 @@ if __name__ == "__main__":
         tweets = db.tweets.find(
             {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': condition})
     else:
-        #tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} })
+        #tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} }).limit(1000000)
         tweets = db.tweets.aggregate([ { '$sample': { 'size': 30000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ])
 
     pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 16)
@@ -149,6 +149,7 @@ if __name__ == "__main__":
     p_count_dep = defaultdict(int)
     n_p_count_dep = defaultdict(int)
     dep_set_dict = defaultdict(set)
+    cond_set_dict = defaultdict(set)
     p_party = dict()
     n_p_party = dict()
     colors = list()
@@ -162,7 +163,6 @@ if __name__ == "__main__":
         parl = tweet['user_name']
         cond = tweet['cond_55']
         if 'party' in tweet:
-            colors.append(map_c[cond])
             dep_set_dict[cond].add(parl)
             party = tweet['party']
             if pc.is_political(tweet['text_processed']):
@@ -173,6 +173,7 @@ if __name__ == "__main__":
                     p_party[party] = Counter({x: 0 for x in range(1, 54)})
                     p_party[party][month] += 1
 
+                colors.append(map_c[cond])
                 p_count_dep[parl] += 1
 
             else:
