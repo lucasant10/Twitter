@@ -149,6 +149,7 @@ if __name__ == "__main__":
     p_count_dep = defaultdict(int)
     n_p_count_dep = defaultdict(int)
     dep_set_dict = defaultdict(set)
+    cond_set_dict = defaultdict(set)
     p_party = dict()
     n_p_party = dict()
     colors = list()
@@ -162,7 +163,6 @@ if __name__ == "__main__":
         parl = tweet['user_name']
         cond = tweet['cond_55']
         if 'party' in tweet:
-            colors.append(map_c[cond])
             dep_set_dict[cond].add(parl)
             party = tweet['party']
             if pc.is_political(tweet['text_processed']):
@@ -173,6 +173,7 @@ if __name__ == "__main__":
                     p_party[party] = Counter({x: 0 for x in range(1, 54)})
                     p_party[party][month] += 1
 
+                colors.append(map_c[cond])
                 p_count_dep[parl] += 1
 
             else:
