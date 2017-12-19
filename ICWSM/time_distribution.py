@@ -9,6 +9,7 @@ from political_classification import PoliticalClassification
 import math
 import random
 from collections import Counter, defaultdict
+import matplotlib.patches as mpatches
 
 
 def month_tw(time):
@@ -55,7 +56,7 @@ def plot_hist(dist, title):
 
 def plot_cdf(dist):
     figure = plt.figure(figsize=(15, 8))
-    num_bins = 20
+    num_bins = 100
     ax = figure.add_subplot(111)
     for cond, values in dist.items():
         ax.hist(values, num_bins, normed=True, label=cond,
@@ -67,10 +68,14 @@ def plot_cdf(dist):
     plt.savefig(dir_in + "cdf_tweets.png")
     plt.clf()
 
-def plot_disp(dist_tw, dist_p):
+def plot_disp(dist_tw, dist_p, colors):
     figure = plt.figure(figsize=(15, 8))
     ax = figure.add_subplot(111)
-    ax.plot(dist_tw, dist_p, 'o')
+    ax.scatter(dist_tw, dist_p, color=colors)
+    o_patch = mpatches.Patch(color='orange', label='Elected')
+    g_patch = mpatches.Patch(color='green', label='Reelected')
+    p_patch = mpatches.Patch(color='purple', label='Not Elected')
+    ax.legend(handles=[o_patch, g_patch, p_patch])
     ax.set_xlabel('Number of tweets')
     ax.set_xscale('log')
     ax.set_ylabel('Percentage of political posts')
@@ -78,6 +83,32 @@ def plot_disp(dist_tw, dist_p):
     plt.savefig(dir_in + "disp_tweets.png")
     plt.clf()
 
+def plot_dist_cdf(p_values, n_p_values, deputy):
+    figure = plt.figure(figsize=(15, 8))
+    ind = np.arange(1, (len(p_values) + 1))
+    ax = figure.add_subplot(111)
+    cum_y = np.cumsum(n_p_values)
+    ax.plot(ind, np.cumsum(p_values), label='Political', color='seagreen')
+    ax.plot(ind, cum_y, label='Non Political', color='tomato')
+    ax.legend()
+    ax.set_xticks(ind)
+    ax.set_xlabel('Months from oct/13 to oct/17')
+    ax.set_ylabel('Percentage of tweets')
+    ax.set_title("%s Cumulative Distribution Over Time" % deputy)
+    ax.axvline(14, color='b')
+    ax.axvline(39, color='b')
+    ax.annotate('election', 
+             xy=(14,0.9),  
+             xycoords='data',
+             textcoords='offset points',
+             arrowprops=dict(arrowstyle="->"))
+    ax.annotate('impeachment', 
+             xy=(39,0.9),  
+             xycoords='data',
+             textcoords='offset points',
+             arrowprops=dict(arrowstyle="->"))
+    plt.savefig(dir_in + "%s_cdf_distribution.png" % deputy)
+    plt.clf()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -95,7 +126,7 @@ if __name__ == "__main__":
     cf = configparser.ConfigParser()
     cf.read("../file_path.properties")
     path = dict(cf.items("file_path"))
-    dir_in = path['dir_in']
+    dir_in = path['dir_out']
 
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
@@ -108,10 +139,10 @@ if __name__ == "__main__":
         tweets = db.tweets.find(
             {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': condition})
     else:
-        tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} })
-        #tweets = db.tweets.aggregate([ { '$sample': { 'size': 30000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ])
+        #tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} })
+        tweets = db.tweets.aggregate([ { '$sample': { 'size': 30000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ])
 
-    pc = PoliticalClassification('word2vec_bow_s300.h5', 'dict_word2vec_bow_s300.npy', 18)
+    pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 16)
 
     p_count = {x: 0 for x in range(1, 54)}
     n_p_count = {x: 0 for x in range(1, 54)}
@@ -120,12 +151,18 @@ if __name__ == "__main__":
     dep_set_dict = defaultdict(set)
     p_party = dict()
     n_p_party = dict()
+    colors = list()
+    map_l = {'novos': 'Elected', 'reeleitos': 'Reelected',
+             'nao_eleitos': 'Not Elected'}
+    map_c = {'novos': 'orange', 'reeleitos': 'green',
+             'nao_eleitos': 'purple'}
     print('processing tweets ...')
     for tweet in tweets:
         month = month_tw(int(tweet['created_at']))
         parl = tweet['user_name']
         cond = tweet['cond_55']
         if 'party' in tweet:
+            colors.append(map_c[cond])
             dep_set_dict[cond].add(parl)
             party = tweet['party']
             if pc.is_political(tweet['text_processed']):
@@ -161,8 +198,6 @@ if __name__ == "__main__":
             out.write(prepare_text(n_p_count, 1000))
 
     print('plotting distribution ...')
-    map_l = {'novos': 'Elected', 'reeleitos': 'Reelected',
-             'nao_eleitos': 'Not Elected'}
     labels, p_values = zip(*sorted(p_count.items(), key=lambda i: i[0]))
     _, n_p_values = zip(*sorted(n_p_count.items(), key=lambda i: i[0]))
 
@@ -184,14 +219,18 @@ if __name__ == "__main__":
 
     if deputy is not None:
         plot_dist(p_values, n_p_values, labels, deputy)
+        plot_dist_cdf(p_values, n_p_values, labels, deputy)
+
     elif condition is not None:
         plot_dist(p_values, n_p_values, labels, "")
+        plot_dist_cdf(p_values, n_p_values, "")
         plot_hist(dist_p, "%s Political" % map_l[condition])
     else:
         plot_dist(p_values, n_p_values, labels, "")
+        plot_dist_cdf(p_values, n_p_values, "")
         plot_hist(dist_p, "Political")
         plot_cdf(dist_cond)
-        plot_disp(dist_tw, dist_p)
+        plot_disp(dist_tw, dist_p, colors)
         for party, counter in p_party.items():
             labels, p_values = zip(
                 *sorted(counter.items(), key=lambda i: i[0]))
