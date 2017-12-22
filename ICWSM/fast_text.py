@@ -1,25 +1,41 @@
 import sys
 sys.path.append('../')
 import argparse
-from keras.preprocessing.sequence import pad_sequences
-from keras.layers import Embedding, Input, LSTM
-from keras.models import Sequential, Model
-from keras.layers import Activation, Dense, Dropout, Embedding, Flatten, Input, Merge, Convolution1D, MaxPooling1D, GlobalMaxPooling1D, GlobalAveragePooling1D
-import numpy as np
-from sklearn.metrics import make_scorer, f1_score, accuracy_score, recall_score, precision_score, classification_report, precision_recall_fscore_support
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from gensim.parsing.preprocessing import STOPWORDS
-from sklearn.model_selection import KFold
-from keras.utils import np_utils
-import operator
-import gensim
-import sklearn
-from collections import defaultdict
-from batch_gen import batch_gen
-import os
 import configparser
-from text_processor import TextProcessor
+import gensim
 import json
+import math
+import numpy as np
+import operator
+import os
+import pymongo
+import sklearn
+from batch_gen import batch_gen
+from collections import defaultdict
+from f_map import F_map
+from gensim.parsing.preprocessing import STOPWORDS
+from keras.layers import Activation
+from keras.layers import Dense
+from keras.layers import Dropout
+from keras.layers import Embedding
+from keras.layers import GlobalAveragePooling1D
+from keras.layers import Input
+from keras.layers import Merge
+from keras.models import Model
+from keras.models import Sequential
+from keras.preprocessing.sequence import pad_sequences
+from keras.utils import np_utils
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import classification_report
+from sklearn.metrics import f1_score
+from sklearn.metrics import make_scorer
+from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+from sklearn.model_selection import KFold
+
 
 # Preparing the text data
 texts = []  # list of text samples
@@ -91,61 +107,39 @@ def get_embedding_weights():
     return embedding
 
 
-def select_tweets(tweets):
+
+def select_tweets(tweets, tw_class):
     # selects the tweets as in mean_glove_embedding method
-    # Processing       
-    X, Y = [], []
+    # Processing
     tweet_return = []
-    for tweet in tweets:
+    class_return = []
+    for i, tweet in enumerate(tweets):
         _emb = 0
         for w in tweet:
             if w in word2vec_model:  # Check if embeeding there in GLove model
                 _emb += 1
         if _emb:   # Not a blank tweet
             tweet_return.append(tweet)
+            class_return.append(tw_class[i])
     print('Tweets selected:', len(tweet_return))
-    return tweet_return
+    return tweet_return, class_return
 
-
-def gen_vocab():
-    # Processing
-    vocab_index = 1
-    for tweet in tweets:
-        for word in tweet:
-            if word not in vocab:
-                vocab[word] = vocab_index
-                # generate reverse vocab as well
-                reverse_vocab[vocab_index] = word
-                vocab_index += 1
-            freq[word] += 1
+def gen_vocab(model_vec):
+    vocab = dict([(k, v.index) for k, v in model_vec.vocab.items()])
     vocab['UNK'] = len(vocab) + 1
-    reverse_vocab[len(vocab)] = 'UNK'
+    print(vocab['UNK'])
+    return vocab
 
-
-def filter_vocab(k):
-    global freq, vocab
-    pdb.set_trace()
-    freq_sorted = sorted(freq.items(), key=operator.itemgetter(1))
-    tokens = freq_sorted[:k]
-    vocab = dict(zip(tokens, range(1, len(tokens) + 1)))
-    vocab['UNK'] = len(vocab) + 1
-
-
-def gen_sequence():
-    y_map = dict()
-    for i, v in enumerate(sorted(set(tw_class))):
-        y_map[v] = i
-    print(y_map)
-
+def gen_sequence(vocab):
+    y_map = {'politics': 0, 'non_politics': 1}
     X, y = [], []
     for i, tweet in enumerate(tweets):
-        seq, _emb = [], []
+        seq = []
         for word in tweet:
             seq.append(vocab.get(word, vocab['UNK']))
         X.append(seq)
         y.append(y_map[tw_class[i]])
     return X, y
-
 
 def shuffle_weights(model):
     weights = model.get_weights()
@@ -227,7 +221,67 @@ def train_fast_text(X, y, model, inp_dim, weights, epochs=EPOCHS,
     print("average precision is %f" % (p1/NO_OF_FOLDS))
     print("average recall is %f" % (r1/NO_OF_FOLDS))
     print("average f1 is %f" % (f11/NO_OF_FOLDS))
-    return lookup_table/float(10)
+    return ((p / NO_OF_FOLDS), (r / NO_OF_FOLDS), (f1 / NO_OF_FOLDS))
+
+def get_tweets(db, sample, dimension):
+    sample = math.floor(sample / 2)
+    tweets = list()
+    tw_class = list()
+
+    if dimension == 'few_months':
+        tmp = db.politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
+        for tw in tmp:
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('politics')
+        tmp = db.non_politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
+        for tw in tmp:
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('non_politics')
+
+    elif dimension == 'few_parls':
+        tmp = db.politics.aggregate(
+            [
+                {'$group': {'_id': "$user_id", 'text': {
+                    '$push': "$text_processed"}, 'count': {'$sum': 1}}},
+                {'$sort': {'count': -1}}
+            ]
+        )
+        x = 0
+        for tw in tmp:
+            if x <= sample:
+                tweets += tw['text'][:(sample - x)]
+                x += tw['count']
+        tw_class += ['politics'] * len(tweets)
+        tmp = db.non_politics.aggregate(
+            [
+                {'$group': {'_id': "$user_id", 'text': {
+                    '$push': "$text_processed"}, 'count': {'$sum': 1}}},
+                {'$sort': {'count': -1}}
+            ]
+        )
+        x = 0
+        bf = len(tweets)
+        for tw in tmp:
+            if x <= sample:
+                tweets += tw['text'][:(sample - x)]
+                x += tw['count']
+        tw_class += ['non_politics'] * (len(tweets) - bf)
+        print('tamnho tw_class: %i' % len(tw_class))
+        tweets = [t.split(' ') for t in tweets]
+
+    else:
+        tmp = db.politics.aggregate([{'$sample': {'size': sample}}])
+        for tw in tmp:
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('politics')
+
+        tmp = db.non_politics.aggregate([{'$sample': {'size': sample}}])
+        for tw in tmp:
+            tweets.append(tw['text_processed'].split(' '))
+            tw_class.append('non_politics')
+
+    return tweets, tw_class
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -242,6 +296,10 @@ if __name__ == "__main__":
                         choices=['random', 'word2vec'], required=True)
     parser.add_argument('--learn-embeddings',
                         action='store_true', default=False)
+    parser.add_argument('--model_name', default=MODEL_NAME, required=True)
+    parser.add_argument('--dict_name', default=DICT_NAME, required=True)
+    parser.add_argument('--dispersion', default=DISPERSION, required=True)
+    parser.add_argument('--sample', default=SAMPLE, required=True)
     
     args = parser.parse_args()
     W2VEC_MODEL_FILE = args.embeddingfile
@@ -251,6 +309,10 @@ if __name__ == "__main__":
     EPOCHS = int(args.epochs)
     BATCH_SIZE = int(args.batch_size)
     INITIALIZE_WEIGHTS_WITH = args.initialize_weights
+    MODEL_NAME = args.model_name
+    DICT_NAME = args.dict_name
+    DISPERSION = args.dispersion
+    SAMPLE = int(args.sample)
     
     np.random.seed(SEED)
     print('W2VEC embedding: %s' % (W2VEC_MODEL_FILE))
@@ -263,16 +325,17 @@ if __name__ == "__main__":
     dir_w2v = path['dir_w2v']
     dir_in = path['dir_in']
 
-    word2vec_model = gensim.models.Word2Vec.load(dir_w2v+W2VEC_MODEL_FILE)
+    word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v + W2VEC_MODEL_FILE,
+                                                                     binary=False,
+                                                                     unicode_errors="ignore")
 
-    tp = TextProcessor()
-    doc_list, tw_class = load_files(dir_in)
-    tweets = tp.text_process(doc_list, text_only=True)
-    tweets = select_tweets(tweets)
+    client = pymongo.MongoClient("mongodb://localhost:27017")
+    db = client.twitterdb
+    tweets, tw_class = get_tweets(db, SAMPLE, DISPERSION)
+    tweets, tw_class = select_tweets(tweets, tw_class)
 
-    gen_vocab()
-    # filter_vocab(20000)
-    X, y = gen_sequence()
+    vocab = gen_vocab(word2vec_model)
+    X, y = gen_sequence(vocab)
     MAX_SEQUENCE_LENGTH = max(map(lambda x: len(x), X))
     print("max seq length is %d" % (MAX_SEQUENCE_LENGTH))
 
@@ -282,10 +345,15 @@ if __name__ == "__main__":
     W = get_embedding_weights()
 
     model = fast_text_model(data.shape[1])
-    train_fast_text(data, y, model, EMBEDDING_DIM, W)
-    model.save(dir_in + "model_fast_text.h5")
-    np.save(dir_in + 'dict_fast_text.npy', vocab)
-
+    p, r, f1 = train_fast_text(data, y, model, EMBEDDING_DIM, W)
+    model.save(dir_w2v + MODEL_NAME + ".h5")
+    np.save(dir_w2v + DICT_NAME + '.npy', vocab)
+    txt = '%i, %i, %i, %i, %i, %.2f, %.2f, %.2f, ' % (F_map.get_id('LSTM'), F_map.get_id(W2VEC_MODEL_FILE),
+                                   F_map.get_id(EMBEDDING_DIM), F_map.get_id(SAMPLE), F_map.get_id(DISPERSION),
+                                   p, r, f1)
+    f = open(dir_w2v + "trainned_params.txt", 'a')
+    f.write(txt)
+    f.close()
 
     # python fast_text.py -f model_word2vec -d 100 --initialize-weights word2vec --learn-embeddings --epochs 10 --batch-size 30
     
