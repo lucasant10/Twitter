@@ -10,7 +10,12 @@ class F_map:
         # sample dimension
         100: 0, 1000: 1, 2000: 2,
         # dispersion
-        'random': 0, 'few_months': 1, 'few_parls': 2
+        'random': 0, 'few_months': 1, 'few_parls': 2,
+        # political condition
+        ('novos', 'reeleitos'): '1, 1, 0', ('reeleitos', 'nao_eleitos'): '0, 1, 1', ('novos','nao_eleitos'): '1, 0, 1',
+        # data label
+        'politics': 0, 'non_politics': 1, 'all': 2
+
     }
 
     @staticmethod
