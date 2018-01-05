@@ -14,7 +14,9 @@ class F_map:
         # political condition
         ('novos', 'reeleitos'): '1, 1, 0', ('reeleitos', 'nao_eleitos'): '0, 1, 1', ('novos','nao_eleitos'): '1, 0, 1',
         # data label
-        'politics': 0, 'non_politics': 1, 'all': 2
+        'politics': 0, 'non_politics': 1, 'all': 2,
+        # periods
+        1396483200000: 0, 1412294400000: 1, 1459382400000: 2, 1472601600000: 3
 
     }
 

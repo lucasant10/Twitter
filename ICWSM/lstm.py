@@ -23,6 +23,8 @@ import json
 import pymongo
 import math
 from f_map import F_map
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 # Preparing the text data
 texts = []  # list of text samples

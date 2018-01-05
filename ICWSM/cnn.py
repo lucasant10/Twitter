@@ -376,7 +376,7 @@ if __name__ == "__main__":
     p, r, f1 = train_CNN(data, y, EMBEDDING_DIM, model, W)
     model.save(dir_w2v + MODEL_NAME + ".h5")
     np.save(dir_w2v + DICT_NAME + '.npy', vocab)
-    txt = '%i, %i, %i, %i, %i, %.2f, %.2f, %.2f, ' % (F_map.get_id('LSTM'), F_map.get_id(W2VEC_MODEL_FILE),
+    txt = '%i, %i, %i, %i, %i, %.2f, %.2f, %.2f, ' % (F_map.get_id('CNN'), F_map.get_id(W2VEC_MODEL_FILE),
                                    F_map.get_id(EMBEDDING_DIM), F_map.get_id(SAMPLE), F_map.get_id(DISPERSION),
                                    p, r, f1)
     f = open(dir_w2v + "trainned_params.txt", 'a')

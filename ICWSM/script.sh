@@ -3,16 +3,16 @@
 
 # sample <= 2000
 sample=2000
-# cbow_s100.txt, glove_s100.txt, skip_s100.txt, cbow_s300.txt, glove_s300.txt
+# cbow_s100.txt, glove_s100.txt, skip_s100.txt, cbow_s300.txt, glove_s300.txt, model_300_word2vec.txt
 embedding=cbow_s300.txt
 # word-embeddings lengh: 100,200,300
 dimension=300
 # lstm.py, cnn.py
-classification=cnn.py
-# model_cnn, model_lstm
-model_name=model_cnn
-# dict_cnn, dict_lstm
-dict=dict_cnn
+classification=fast_text.py
+# model_cnn, model_lstm, model_fast_text
+model_name=model_fast_text
+# dict_cnn, dict_lstm, dict_fast_text
+dict=dict_fast_text
 # random, few_months, few_parls
 dispersion=random
 # word2vec, random

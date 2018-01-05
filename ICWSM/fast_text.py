@@ -35,6 +35,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.model_selection import KFold
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 
 # Preparing the text data
@@ -63,6 +64,10 @@ LEARN_EMBEDDINGS = None
 EPOCHS = 10
 BATCH_SIZE = 512
 SCALE_LOSS_FUN = None
+MODEL_NAME = 'fast_text_model'
+DICT_NAME = 'fast_text_dict'
+DISPERSION = 'random'
+SAMPLE = 2000
 
 word2vec_model = None
 
@@ -300,7 +305,9 @@ if __name__ == "__main__":
     parser.add_argument('--dict_name', default=DICT_NAME, required=True)
     parser.add_argument('--dispersion', default=DISPERSION, required=True)
     parser.add_argument('--sample', default=SAMPLE, required=True)
-    
+    parser.add_argument('--loss', default=LOSS_FUN, required=True)
+       
+
     args = parser.parse_args()
     W2VEC_MODEL_FILE = args.embeddingfile
     EMBEDDING_DIM = int(args.dimension)
@@ -313,6 +320,7 @@ if __name__ == "__main__":
     DICT_NAME = args.dict_name
     DISPERSION = args.dispersion
     SAMPLE = int(args.sample)
+    LOSS_FUN = args.loss
     
     np.random.seed(SEED)
     print('W2VEC embedding: %s' % (W2VEC_MODEL_FILE))
@@ -348,7 +356,7 @@ if __name__ == "__main__":
     p, r, f1 = train_fast_text(data, y, model, EMBEDDING_DIM, W)
     model.save(dir_w2v + MODEL_NAME + ".h5")
     np.save(dir_w2v + DICT_NAME + '.npy', vocab)
-    txt = '%i, %i, %i, %i, %i, %.2f, %.2f, %.2f, ' % (F_map.get_id('LSTM'), F_map.get_id(W2VEC_MODEL_FILE),
+    txt = '%i, %i, %i, %i, %i, %.2f, %.2f, %.2f, ' % (F_map.get_id('FAST_TEXT'), F_map.get_id(W2VEC_MODEL_FILE),
                                    F_map.get_id(EMBEDDING_DIM), F_map.get_id(SAMPLE), F_map.get_id(DISPERSION),
                                    p, r, f1)
     f = open(dir_w2v + "trainned_params.txt", 'a')

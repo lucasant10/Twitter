@@ -14,6 +14,7 @@ import pymongo
 from batch_gen import batch_gen
 from collections import defaultdict
 from f_map import F_map
+from keras import backend as K
 from keras.layers import LSTM
 from keras.layers import Activation
 from keras.layers import Convolution1D
@@ -40,7 +41,7 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.model_selection import KFold
 from political_classification import PoliticalClassification
-os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 # Preparing the text data
 texts = []  # list of text samples
@@ -98,13 +99,15 @@ def gen_vocab(model_vec):
 
 
 def gen_sequence(vocab, tweets):
+    tmp = set([x[1] for x in tweets])
+    y_map = {tmp.pop(): 0, tmp.pop(): 1}
     X, y= [],[]
     for tweet in tweets:
         seq = []
         for word in tweet[0]:
             seq.append(vocab.get(word, vocab['UNK']))
         X.append(seq)
-        y.append(tweet[1])
+        y.append(y_map[tweet[1]])
     print(y)
     return X, y
 
@@ -243,6 +246,9 @@ def train_CNN(X, y, inp_dim, model, weights, epochs=EPOCHS, batch_size=BATCH_SIZ
     print("average recall is %f" % (r1 / NO_OF_FOLDS))
     print("average f1 is %f" % (f11 / NO_OF_FOLDS))
 
+    del model
+    K.clear_session()
+
     return ((p / NO_OF_FOLDS), (r / NO_OF_FOLDS), (f1 / NO_OF_FOLDS))
 
 def learn_predict(vocab, tweets):
@@ -255,10 +261,10 @@ def learn_predict(vocab, tweets):
     return (p, r, f1)
 
 
-def save(cond, label, p, r, f1):
+def save(period, cond, label, p, r, f1):
     print('saving !!')
-    txt = '%s, %i, %.2f, %.2f, %.2f \n' % (
-        F_map.get_id(cond), F_map.get_id(label), p, r, f1)
+    txt = '%i, %s, %i, %.2f, %.2f, %.2f \n' % (
+        F_map.get_id(period), F_map.get_id(cond), F_map.get_id(label), p, r, f1)
     f = open(dir_w2v + "predict_politics.txt", 'a')
     f.write(txt)
     f.close()
@@ -296,10 +302,10 @@ if __name__ == "__main__":
     print('Allowing embedding learning: %s' % (str(LEARN_EMBEDDINGS)))
 
     # election
-    p1 = (1396483200000, 1443830400000)
-    p2 = (1443830400000, 1428019200000)
+    p1 = (1396483200000, 1412294400000)
+    p2 = (1412294400000, 1443830400000)
     # impeachment
-    p3 = (1427760000000, 1472601600000)
+    p3 = (1459382400000, 1472601600000)
     p4 = (1472601600000, 1490918400000)
 
     cf = configparser.ConfigParser()
@@ -311,8 +317,8 @@ if __name__ == "__main__":
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
 
-    pc = PoliticalClassification('model_lstm.h5',
-                                 'dict_lstm.npy', 16)
+    pc = PoliticalClassification('model_cnn.h5',
+                                 'dict_lstm.npy', 18)
 
     vocab = pc.vocab
     W = get_embedding_weights(vocab)
@@ -320,16 +326,16 @@ if __name__ == "__main__":
     cond_map = {'novos': 0, 'reeleitos': 1, 'nao_eleitos': 2}
     periods = [p1, p2, p3, p4]
     for period in periods:
-        # tweets = db.tweets.find({'created_at': {'$gte': period[0], '$lt': period[1]},
-        #                          'cond_55': {'$exists': True}}
-        tweets = db.tweets.aggregate([{'$sample': {'size': 3000}},
+        #tweets = db.tweets.find({'created_at': {'$gte': period[0], '$lt': period[1]},
+        #                          'cond_55': {'$exists': True}})
+        tw = db.tweets.aggregate([{'$sample': {'size': 200000}},
                                       {'$match': {'created_at': {'$gte': period[0], '$lt': period[1]},
-                                                  'cond_55': {'$exists': True}}}])
+                                                  'cond_55': {'$exists': True}}}], allowDiskUse=True)
 
         politics = defaultdict(list)
         non_politics = defaultdict(list)
         print('getting data')
-        for tweet in tweets:
+        for tweet in tw:
             if pc.is_political(tweet['text_processed']):
                 politics[tweet['cond_55']].append((tweet['text_processed'].split(' '), cond_map[tweet['cond_55']]))
             else:
@@ -339,17 +345,16 @@ if __name__ == "__main__":
             print('processing politics')
             tweets_p = politics[con[0]] + politics[con[1]]
             p, r, f1 = learn_predict(vocab, tweets_p)
-            save(con, 'politics', p, r, f1)
+            save(period[0], con, 'politics', p, r, f1)
 
             print('processing Non politics')
             tweets_n_p = non_politics[con[0]] + non_politics[con[1]]
             p, r, f1 = learn_predict(vocab, tweets_n_p)
-            save(con, 'non_politics', p, r, f1)
+            save(period[0], con, 'non_politics', p, r, f1)
 
             print('processing all')
             tweets_all = tweets_p + tweets_n_p
             p, r, f1 = learn_predict(vocab, tweets_all)
-            save(con, 'all', p, r, f1)
+            save(period[0], con, 'all', p, r, f1)
 
-# python predict_politics.py -f cbow_s100.txt  -d 100 --epochs 10
-# --batch-size 30 --initialize-weights word2vec --learn-embeddings
+# python predict_politics.py -f cbow_s100.txt  -d 100 --epochs 10 --batch-size 30 --initialize-weights word2vec --learn-embeddings
