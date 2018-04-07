@@ -53,3 +53,20 @@ class AssingTopics():
                 tw_topics.append(tmp)
             assing[tw_topics.index(max(tw_topics))] += 1
         return assing
+
+    def get_topic_distribution(self, text, topics, topic_list):
+        total = defaultdict(int)
+        target = defaultdict(int)
+        for t in text:
+            tw_topics = list()
+            for tp in topics:
+                tmp = 0
+                for w in t:
+                    if w in self.inv_voca:
+                        tmp += tp[self.inv_voca[w]]
+                tw_topics.append(tmp)
+            index = tw_topics.index(max(tw_topics))
+            if index in topic_list:
+                target[index] += 1
+            total[index] += 1
+        return (total, target)
