@@ -13,18 +13,21 @@ if __name__ == '__main__':
     dir_in = path['dir_in']
 
     print("Reading vocab ")
-    voca = btm.read_voca(dir_btm + "voca.txt")
-    inv_voca = {v: k for k, v in voca.items()}
+    p_voca = btm.read_voca(dir_btm + "voca.txt")
+    p_inv_voca = {v: k for k, v in p_voca.items()}
+
+    n_p_voca = btm.read_voca(dir_btm + "voca2.txt")
+    n_p_inv_voca = {v: k for k, v in n_p_voca.items()}
 
     print("Loading politcs_text ")
     politcs_text = list()
-    tweets = open(dir_in + "politicos.txt", "r")
+    tweets = open(dir_in + "politics_text.txt", "r")
     for l in tweets:
         politcs_text.append(l.split())
 
     print("Loading non politcs_text ")
     n_politcs_text = list()
-    tweets = open(dir_in + "nao_politicos.txt", "r")
+    tweets = open(dir_in + "non_politics_text.txt", "r")
     for l in tweets:
         n_politcs_text.append(l.split())
 
@@ -32,15 +35,15 @@ if __name__ == '__main__':
     dist_n_politics = list()
 
     assing_topics = list()
-    print("Reading topic %s" % i)
-    pz_pt = dir_btm + "model/k" + str(i) + ".pz"
+    print("Reading topic")
+    pz_pt = dir_btm + "model/k10.pz"
     pz = btm.read_pz(pz_pt)
-    zw_pt = dir_btm + "model/k" + str(i) + ".pw_z"
+    zw_pt = dir_btm + "model/k10.pw_z"
 
-    print("Processing topic %s" % i)
+    print("Processing topic")
     k = 0
     topics = []
-    vectors = np.zeros((len(pz), len(inv_voca)))
+    vectors = np.zeros((len(pz), len(p_inv_voca)))
     for k, l in enumerate(open(zw_pt)):
         vs = [float(v) for v in l.split()]
         vectors[k, :] = vs
@@ -56,11 +59,28 @@ if __name__ == '__main__':
         for tp in topics:
             tmp = 0
             for w in t:
-                if w in inv_voca:
-                    tmp += tp[inv_voca[w]]
+                if w in p_inv_voca:
+                    tmp += tp[p_inv_voca[w]]
             tw_topics.append(tmp)
 
         assing_politcs[tw_topics.index(max(tw_topics))] += 1
+
+    print("Reading topic")
+    pz_pt = dir_btm + "model2/k10.pz"
+    pz = btm.read_pz(pz_pt)
+    zw_pt = dir_btm + "model2/k10.pw_z"
+
+    print("Processing topic")
+    k = 0
+    topics = []
+    vectors = np.zeros((len(pz), len(n_p_inv_voca)))
+    for k, l in enumerate(open(zw_pt)):
+        vs = [float(v) for v in l.split()]
+        vectors[k, :] = vs
+        wvs = zip(range(len(vs)), vs)
+        wvs = dict(sorted(wvs, key=lambda d: d[1], reverse=True))
+        topics.append(wvs)
+        k += 1 
 
     print("Assing non politics topics")
     assing_n_politcs = defaultdict(int)
@@ -69,21 +89,20 @@ if __name__ == '__main__':
         for tp in topics:
             tmp = 0
             for w in t:
-                if w in inv_voca:
-                    tmp += tp[inv_voca[w]]
+                if w in n_p_inv_voca:
+                    tmp += tp[n_p_inv_voca[w]]
             tw_topics.append(tmp)
         assing_n_politcs[tw_topics.index(max(tw_topics))] += 1
 
     print("Saving file")
+    total = sum(assing_politcs.values()) + sum(assing_n_politcs.values())
     f = open(dir_in + "btm_politicos.txt", 'w')
     f.write("-- political topics -- \n\n")
-    total = sum(assing_topics.values())
     for i in range(0, len(topics)):
-        f.write("topic %s: %0.2f" % (i, (assing_topics[i] / total)))
+        f.write("%0.2f\n" % (assing_politcs[i] / total * 100))
 
     f.write("\n\n-- non political topics -- \n\n")
-    total = sum(assing_n_politcs.values())
     for i in range(0, len(topics)):
-        f.write("topic %s: %0.2f" % (i, (assing_n_politcs[i] / total)))
+        f.write("%0.2f\n" % (assing_n_politcs[i] / total * 100))
 
     f.close()

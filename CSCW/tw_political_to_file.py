@@ -8,6 +8,9 @@ import math
 import pymongo
 import numpy as np
 from political_classification import PoliticalClassification
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+
 
 if __name__ == "__main__":
     cf = configparser.ConfigParser()
@@ -15,7 +18,7 @@ if __name__ == "__main__":
     path = dict(cf.items("file_path"))
     dir_in = path['dir_in']
 
-    pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 16)
+    pc = PoliticalClassification('cnn_s300.h5', 'cnn_s300.npy', 18)
 
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb

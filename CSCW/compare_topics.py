@@ -5,6 +5,7 @@ import topic_BTM as btm
 import numpy as np
 from collections import defaultdict
 import networkx as nx
+from assign_topics import AssingTopics
 
 
 def vocab(path):
@@ -13,27 +14,45 @@ def vocab(path):
     return voca, inv_voca
 
 
-def processing_topic(pz, inv_voca, zw_pt):
+def processing_topic(pz, inv_voca, voca, zw_pt, top_k):
     topics = []
     vectors = np.zeros((len(pz), len(inv_voca)))
     for k, l in enumerate(open(zw_pt)):
         vs = [float(v) for v in l.split()]
         vectors[k, :] = vs
         wvs = zip(range(len(vs)), vs)
-        wvs = dict(sorted(wvs, key=lambda d: d[1], reverse=True))
-        topics.append(wvs)
+        wvs = sorted(wvs, key=lambda d: d[1], reverse=True)
+        topics.append([voca[w] for w, v in wvs[:top_k]])
         k += 1
     return topics
 
 
-def topic_index(tweet, topics, inv_voca):
-    for tp in topics:
-        tmp = 0
-        for w in tweet:
-            if w in inv_voca:
-                tmp += tp[inv_voca[w]]
-        tw_topics.append(tmp)
-    return tw_topics.index(max(tw_topics))
+def jaccard_distance(list1, list2):
+    intersection = len(list(set(list1).intersection(list2)))
+    union = (len(list1) + len(list2)) - intersection
+    return float(intersection / union)
+
+
+def jaccard_topics(t_base, topics):
+    tmp = list()
+    for topic in topics:
+        tmp.append(jaccard_distance(t_base, topic))
+    return (tmp.index(max(tmp)), max(tmp))
+
+
+def list2text(topics):
+    txt = ''
+    for k, topic in enumerate(topics):
+        txt += "%d :" % (k + 1) + ' '.join(topic) + '\n'
+    return txt
+
+
+def load_file(dir_in, file_name):
+    text = list()
+    tweets = open(dir_in + file_name, "r")
+    for l in tweets:
+        text.append(l.split())
+    return text
 
 
 if __name__ == '__main__':
@@ -42,15 +61,6 @@ if __name__ == '__main__':
     path = dict(cf.items("file_path"))
     dir_btm = path['dir_btm']
     dir_in = path['dir_in']
-
-    pc = PoliticalClassification('cnn_s300.h5', 'cnn_s300.npy', 18)
-
-    client = pymongo.MongoClient("mongodb://localhost:27017")
-    db = client.twitterdb
-    tweets = db.tweets.find({'created_at': {
-                            '$gte': 1380585600000, '$lt': 1443830400000}, 'cond_55': {'$exists': True}})
-
-    voca = ['voca.txt', 'voca2.txt', 'all_voca2.txt']
 
     print("Reading vocab ")
     p_voca, p_inv_voca = vocab('voca.txt')
@@ -72,20 +82,69 @@ if __name__ == '__main__':
     a_zw_pt = dir_btm + "model2/k20.pw_z"
 
     print("Processing topic")
-    p_topics = processing_topic(p_pz, p_inv_voca, p_zw_pt)
-    np_topics = processing_topic(np_pz, np_inv_voca, np_zw_pt)
-    a_topics = processing_topic(a_pz, a_inv_voca, a_zw_pt)
+    p_topics = processing_topic(p_pz, p_inv_voca, p_voca, p_zw_pt, 10)
+    np_topics = processing_topic(np_pz, n_p_inv_voca, n_p_voca, np_zw_pt, 10)
+    a_topics = processing_topic(a_pz, all_inv_voca, all_voca, a_zw_pt, 10)
 
+    print("processing assign topic distribution")
+    at = AssingTopics(dir_btm, dir_in, 'voca.txt',
+                      "model/k10.pz", "model/k10.pw_z")
+    dist_pol = at.get_topic_distribution(
+        load_file(dir_in, 'politics.txt'), at.topics)
+    at = AssingTopics(dir_btm, dir_in, 'voca2.txt',
+                      "model2/k10.pz", "model2/k10.pw_z")
+    dist_n_pol = at.get_topic_distribution(
+        load_file(dir_in, 'non_politics.txt'), at.topics)
+    at = AssingTopics(dir_btm, dir_in, 'all_voca2.txt',
+                      "model2/k20.pz", "model2/k20.pw_z")
+    dist_both = at.get_topic_distribution(
+        load_file(dir_in, 'both_politics.txt'), at.topics)
+
+    joint_topics = p_topics + np_topics
+    total = sum(dist_both.values())
+    p_total = sum(dist_pol.values())
+    np_total = sum(dist_n_pol.values())
     print("creating graph")
     t_graph = nx.Graph()
-    for tweet in tweets:
-        all_index = topic_index(tweet, a_topics, a_inv_voca)
-        if pc.is_political(tweet):
-            p_index = topic_index(tweet, p_topics, p_inv_voca)
-            t_graph.add_edge('all %d' % all_index, 'pol %d' % p_index)
+    t_graph.add_nodes_from([('all %d' % (k + 1), dict(perc='%0.2f' % (dist_both[k] / total)))
+                            for k, v in enumerate(a_topics)], bipartite=0)
+    t_graph.add_nodes_from([('pol %d' % (k + 1), dict(perc='%0.2f' % (dist_pol[k] / total)))
+                            for k, v in enumerate(p_topics)], bipartite=1)
+    t_graph.add_nodes_from([('n_pol %d' % (k + 1), dict(perc='%0.2f' % (dist_n_pol[k] / total)))
+                            for k, v in enumerate(np_topics)], bipartite=1)
+    txt = ''
+    for k, tp in enumerate(a_topics):
+        index, value = jaccard_topics(tp, joint_topics)
+        if index < 10:
+            t_graph.add_edge('all %d' % (k + 1), 'pol %d' %
+                             (index + 1), weight=value)
+            txt += 'all %d -> pol %d : W = %0.2f, %%(%0.2f, %0.2f)\n' % (
+                (k + 1), (index + 1), value, (dist_both[k] / total), (dist_pol[index] / total))
         else:
-            np_index = topic_index(tweet, np_topics, np_inv_voca)
-            t_graph.add_edge('all %d' % all_index, 'non_pol %d' % np_index)
+            t_graph.add_edge('all %d' % (k + 1), 'n_pol %d' %
+                             (index - 9), weight=value)
+            txt += 'all %d -> n_pol %d : W = %0.2f, %%(%0.2f, %0.2f)\n' % (
+                (k + 1), (index - 9), value, (dist_both[k] / total), (dist_n_pol[(index - 10)] / total))
 
     print("Saving graph file")
     nx.write_gml(t_graph, dir_in + "topics_graph.gml")
+    f = open(dir_in + "compare_topics.txt", 'w')
+    f.write(txt)
+    f.write("\n\n-- political topics -- \n\n")
+    f.write(list2text(p_topics))
+    f.write("\n\n-- non_political topics -- \n\n")
+    f.write(list2text(np_topics))
+    f.write("\n\n-- both topics -- \n\n")
+    f.write(list2text(a_topics))
+    f.close()
+
+    # # Separate by group
+    # l, r = nx.bipartite.sets(t_graph)
+    # pos = {}
+
+    # # Update position for node from each group
+    # pos.update((node, (1, index)) for index, node in enumerate(l))
+    # pos.update((node, (2, index)) for index, node in enumerate(r))
+
+    # nx.draw(B, pos=pos)
+    # plt.show()
