@@ -1,4 +1,5 @@
 import sys
+import os
 sys.path.append('../')
 import argparse
 import configparser
@@ -10,7 +11,9 @@ import math
 import random
 from collections import Counter, defaultdict
 import matplotlib.patches as mpatches
-
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+import plotly.graph_objs as go
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 def month_tw(time):
     first = 1380585600000
@@ -110,6 +113,69 @@ def plot_dist_cdf(p_values, n_p_values, deputy):
     plt.savefig(dir_in + "%s_cdf_distribution.png" % deputy)
     plt.clf()
 
+def plotly_dist(p_condition, n_p_condition):
+    map_color1 = {'reeleitos': 'rgb(128,0,128)','nao_eleitos': 'rgb(255, 128, 0)', 'novos': 'rgb(0,100,80)' }
+    map_l = {'novos': 'N', 'reeleitos': 'R', 'nao_eleitos': 'L'}
+    data = list()
+    for condition, counter in p_condition.items():
+        print(condition)
+        labels, p_values = zip(
+            *sorted(counter.items(), key=lambda i: i[0]))
+        _, n_p_values = zip(
+            *sorted(n_p_condition[condition].items(), key=lambda i: i[0]))
+        data.append(go.Scatter(
+            y = p_values,
+            x = labels,
+            mode = "lines",
+            line=go.Line(color=map_color1[condition], dash= 'line', width=2),
+            name = "political - %s" % map_l[condition],
+            opacity = 0.8))
+        data.append(go.Scatter(
+            y = n_p_values,
+            x = labels,
+            mode = "lines",
+            line=go.Line(color=map_color1[condition], dash= 'dashdot',  width=2),
+            name = "non-political - %s" % map_l[condition],
+            opacity = 0.8))
+
+        data.append(go.Scatter(
+            x=[39, 39],
+            y=[0, 14000],
+            mode="lines",
+            line=go.Line(color="grey", width=2),
+            showlegend=False
+        )
+        )
+        data.append(go.Scatter(
+            x=[13, 13],
+            y=[0, 14000],
+            mode="lines",
+            line=go.Line(color="grey", width=2),
+            showlegend=False
+        )
+        )
+
+        layout = go.Layout(
+            xaxis = dict(
+                title = 'Months from 10/04/2013 to 10/04/2017',
+                nticks = 20,
+                domain = [1, 56],
+                titlefont = dict(
+                    family = 'Arial, sans-serif',
+                    color = 'grey'
+                )
+            ),
+            yaxis = dict(
+                title = '# of Tweets',
+                titlefont = dict(
+                    family = 'Arial, sans-serif',
+                    color = 'grey'
+                )
+            )
+        )
+    fig = go.Figure(data = data, layout= layout)
+    plot(fig, filename = 'distribution')
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Plot histogram of tweets over time')
@@ -139,10 +205,10 @@ if __name__ == "__main__":
         tweets = db.tweets.find(
             {'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': condition})
     else:
-        tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} }).limit(1000000)
-        #tweets = db.tweets.aggregate([ { '$sample': { 'size': 400000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ], allowDiskUse=True)
+        tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} })
+        #tweets = db.tweets.aggregate([ { '$sample': { 'size': 20000 }}, { '$match': { 'created_at': {'$gte': 1380585600000, '$lt': 1506816000000}, 'cond_55': {'$exists': True} } } ], allowDiskUse=True)
 
-    pc = PoliticalClassification('model_lstm.h5', 'dict_lstm.npy', 18)
+    pc = PoliticalClassification('model_cnn.h5', 'dict_cnn.npy', 18)
 
     p_count = {x: 0 for x in range(1, 54)}
     n_p_count = {x: 0 for x in range(1, 54)}
@@ -153,6 +219,9 @@ if __name__ == "__main__":
     p_party = dict()
     n_p_party = dict()
     colors = list()
+    p_condition = dict()
+    n_p_condition = dict()
+
     map_l = {'novos': 'Elected', 'reeleitos': 'Reelected',
              'nao_eleitos': 'Not Elected'}
     map_c = {'novos': 'orange', 'reeleitos': 'green',
@@ -162,6 +231,19 @@ if __name__ == "__main__":
         month = month_tw(int(tweet['created_at']))
         parl = tweet['user_name']
         cond = tweet['cond_55']
+        if pc.is_political(tweet['text_processed']):
+            if cond in p_condition:
+                p_condition[cond][month] += 1
+            else:
+                p_condition[cond] = Counter({x: 0 for x in range(1, 54)})
+                p_condition[cond][month] += 1
+        else:
+            if cond in n_p_condition:
+                n_p_condition[cond][month] += 1
+            else:
+                n_p_condition[cond] = Counter({x: 0 for x in range(1, 54)})
+                n_p_condition[cond][month] += 1
+
         if 'party' in tweet:
             dep_set_dict[cond].add(parl)
             party = tweet['party']
@@ -172,7 +254,6 @@ if __name__ == "__main__":
                 else:
                     p_party[party] = Counter({x: 0 for x in range(1, 54)})
                     p_party[party][month] += 1
-
                 colors.append(map_c[cond])
                 p_count_dep[parl] += 1
 
@@ -227,14 +308,15 @@ if __name__ == "__main__":
         plot_dist_cdf(p_values, n_p_values, "")
         plot_hist(dist_p, "%s Political" % map_l[condition])
     else:
-        plot_dist(p_values, n_p_values, labels, "")
-        plot_dist_cdf(p_values, n_p_values, "")
-        plot_hist(dist_p, "Political")
-        plot_cdf(dist_cond)
-        plot_disp(dist_tw, dist_p, colors)
-        for party, counter in p_party.items():
-            labels, p_values = zip(
-                *sorted(counter.items(), key=lambda i: i[0]))
-            _, n_p_values = zip(
-                *sorted(n_p_party[party].items(), key=lambda i: i[0]))
-            plot_dist(p_values, n_p_values, labels, party)
+        plotly_dist(p_condition, n_p_condition)
+        # plot_dist(p_values, n_p_values, labels, "")
+        # plot_dist_cdf(p_values, n_p_values, "")
+        # plot_hist(dist_p, "Political")
+        # plot_cdf(dist_cond)
+        # plot_disp(dist_tw, dist_p, colors)
+        # for party, counter in p_party.items():
+        #     labels, p_values = zip(
+        #         *sorted(counter.items(), key=lambda i: i[0]))
+        #     _, n_p_values = zip(
+        #         *sorted(n_p_party[party].items(), key=lambda i: i[0]))
+        #     plot_dist(p_values, n_p_values, labels, party)

@@ -3,9 +3,25 @@ sys.path.append('../')
 import configparser
 import topic_BTM as btm
 import numpy as np
-from collections import defaultdict
+from collections import Counter, defaultdict
 from assign_topics import AssingTopics
+import pymongo
+import math
+from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
+import plotly.graph_objs as go
+from datetime import datetime
+from dateutil.rrule import rrule, MONTHLY
 
+def date_tw(time):
+    return datetime.fromtimestamp((time / 1000)).strftime('%m/%y')
+
+def get_dates():
+    first = datetime.fromtimestamp(1380596400)
+    time = datetime.fromtimestamp(1443668300)
+    dates = list(rrule(MONTHLY, dtstart=first, until=time))
+    dates = {x.strftime('%m/%y'):0 for x in dates}
+    dates.update({'02/15':0, '02/14':0})
+    return dates
 
 def vocab(path):
     voca = btm.read_voca(dir_btm + path)
@@ -53,6 +69,60 @@ def load_file(dir_in, file_name):
         text.append(l.split())
     return text
 
+def plotly_dist(person_cond, pol_cond):
+    map_color1 = {'reeleitos': 'rgb(128,0,128)','nao_eleitos': 'rgb(255, 128, 0)', 'novos': 'rgb(0,100,80)' }
+    map_l = {'novos': 'N', 'reeleitos': 'R', 'nao_eleitos': 'L'}
+    data = list()
+    for condition, counter in person_cond.items():
+        print(condition)
+        labels, person_values = zip(
+            *sorted(counter.items(), key=lambda i: i[0].split('/')[::-1]))
+        _, pol_values = zip(
+            *sorted(pol_cond[condition].items(), key=lambda i: i[0].split('/')[::-1]))
+        data.append(go.Scatter(
+            y = person_values,
+            x = labels,
+            mode = "lines",
+            line=go.Line(color=map_color1[condition], dash= 'line', width=2),
+            name = "personalism - %s" % map_l[condition],
+            opacity = 0.8))
+        data.append(go.Scatter(
+            y = pol_values,
+            x = labels,
+            mode = "lines",
+            line=go.Line(color=map_color1[condition], dash= 'dashdot',  width=2),
+            name = "political - %s" % map_l[condition],
+            opacity = 0.8))
+
+        data.append(go.Scatter(
+            x=['09/14', '09/14'],
+            y=[0, 14000],
+            mode="lines",
+            line=go.Line(color="grey", width=2),
+            showlegend=False
+        )
+        )
+
+        layout = go.Layout(
+            xaxis = dict(
+                title = 'Months from 10/01/2013 to 10/01/2015',
+                nticks = 24,
+                titlefont = dict(
+                    family = 'Arial, sans-serif',
+                    color = 'grey'
+                )
+            ),
+            yaxis = dict(
+                title = '# of Tweets',
+                titlefont = dict(
+                    family = 'Arial, sans-serif',
+                    color = 'grey'
+                )
+            )
+        )
+    fig = go.Figure(data = data, layout= layout)
+    plot(fig, filename = 'distribution')
+
 
 if __name__ == '__main__':
     cf = configparser.ConfigParser()
@@ -60,6 +130,8 @@ if __name__ == '__main__':
     path = dict(cf.items("file_path"))
     dir_btm = path['dir_btm']
     dir_in = path['dir_in']
+
+    person_topicos = [4, 6, 7, 9, 12, 13, 14, 16, 18]
 
     print("Reading vocab ")
     all_voca, all_inv_voca = vocab('all_voca2.txt')
@@ -73,33 +145,41 @@ if __name__ == '__main__':
     print("processing assign topic distribution")
     at = AssingTopics(dir_btm, dir_in, 'all_voca2.txt',
                       "model2/k20.pz", "model2/k20.pw_z")
-    topicos = [1, 6]
-    total, target = at.adjetive_index(
-        load_file(dir_in, 'both_politics.txt'), at.topics, topics)
-    index = (sum(target.values()) / sum(total.values()))
-    print(index)
     
+    client = pymongo.MongoClient("mongodb://localhost:27017")
+    db = client.twitterdb
+    tweets = db.tweets.find({'created_at': {'$gte': 1380596400000, '$lt': 1443668400000}, 'cond_55': {'$exists': True}})
 
+    cond_tw = defaultdict(list)
+    for tw in tweets:
+        cond_tw[tw['cond_55']].append((tw['text_processed'], date_tw(int(tw['created_at']))))
 
-    # print("Saving graph file")
-    # nx.write_gml(t_graph, dir_in + "topics_graph.gml")
-    # f = open(dir_in + "compare_topics.txt", 'w')
-    # f.write(txt)
-    # f.write("\n\n-- political topics -- \n\n")
-    # f.write(list2text(p_topics))
-    # f.write("\n\n-- non_political topics -- \n\n")
-    # f.write(list2text(np_topics))
-    # f.write("\n\n-- both topics -- \n\n")
-    # f.write(list2text(a_topics))
-    # f.close()
+    # cond_index = dict()
+    # for cond, tws in cond_tw.items():
+    #     tweets = [tw[0].split() for tw in tws]       
+    #     total, target = at.adjetive_index(tweets, at.topics, person_topicos)
+    #     cond_index[cond] = "%0.2f" % (sum(target.values()) / sum(total.values()))
 
-    # # Separate by group
-    # l, r = nx.bipartite.sets(t_graph)
-    # pos = {}
+    # print(cond_index)
 
-    # # Update position for node from each group
-    # pos.update((node, (1, index)) for index, node in enumerate(l))
-    # pos.update((node, (2, index)) for index, node in enumerate(r))
-
-    # nx.draw(B, pos=pos)
-    # plt.show()
+    person_cond = dict()
+    pol_cond = dict()
+    for cond, tws in cond_tw.items():
+        for tw in tws:
+            tweet = tw[0].split()
+            date = tw[1]
+            index = at.get_text_topic(tweet, at.topics)
+            if index in person_topicos:
+                if cond in person_cond:
+                    person_cond[cond][date] += 1
+                else:
+                    person_cond[cond] = get_dates()
+                    person_cond[cond][date] += 1
+            else:    
+                if cond in pol_cond:
+                    pol_cond[cond][date] += 1
+                else:
+                    pol_cond[cond] = get_dates()
+                    pol_cond[cond][date] += 1
+    plotly_dist(person_cond, pol_cond)
+    
