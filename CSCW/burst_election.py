@@ -33,7 +33,7 @@ def plot_cdf(b, e, filename):
     #     kde_kws=dict(cumulative=True))
     plt.savefig(dir_in + filename)
 
-def distribution_process(distribution, filename)
+def distribution_process(distribution, dist_class)
     dist_plot = defaultdict(int)
     total = defaultdict(int)
     for cond, dep in distribution.items():
@@ -45,7 +45,7 @@ def distribution_process(distribution, filename)
             if ks[1] <= 0.1:
                 dist_plot[cond] += 1
             else:
-                plot_cdf(before, election, '%s_%d.png' % (cond, d))
+                plot_cdf(before, election, '%s_%s_%d.png' % (dist_class, cond, d))
     print(dist_plot)
 
 
@@ -89,5 +89,5 @@ if __name__ == "__main__":
 
     print('processing distributions')
 
-    distribution_process(politics)
-    distribution_process(non_politics)
+    distribution_process(politics, 'politics')
+    distribution_process(non_politics, 'non-politics')
