@@ -1,4 +1,7 @@
+import matplotlib
+matplotlib.use('Agg')
 import sys
+import os
 sys.path.append('../')
 import argparse
 import configparser
@@ -9,6 +12,7 @@ from political_classification import PoliticalClassification
 import math
 import seaborn as sns
 from scipy.stats import ks_2samp
+from collections import defaultdict
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 def week_tw(time):
@@ -31,9 +35,9 @@ def plot_cdf(b, e, filename):
     # sns.distplot(x,
     #     hist_kws=dict(cumulative=True),
     #     kde_kws=dict(cumulative=True))
-    plt.savefig(dir_in + filename)
+    plt.savefig(dir_in + "burst/" + filename)
 
-def distribution_process(distribution, dist_class)
+def distribution_process(distribution, dist_class):
     dist_plot = defaultdict(int)
     total = defaultdict(int)
     for cond, dep in distribution.items():
@@ -45,7 +49,7 @@ def distribution_process(distribution, dist_class)
             if ks[1] <= 0.1:
                 dist_plot[cond] += 1
             else:
-                plot_cdf(before, election, '%s_%s_%d.png' % (dist_class, cond, d))
+                plot_cdf(before, election, '%s_%s_%s.png' % (dist_class, cond, d))
     print(dist_plot)
 
 
