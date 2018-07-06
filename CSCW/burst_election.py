@@ -29,13 +29,24 @@ def dist_dep(val):
     return bef, elec
 
 def plot_cdf(b, e, filename):
-    plt.clf()
-    sns.kdeplot(b, cumulative=True, label='before election')
-    sns.kdeplot(e, cumulative=True, label='election term')
+    num_bins = 14
+    b_counts, b_bin_edges = np.histogram (b, bins=num_bins, normed=True)
+    e_counts, e_bin_edges = np.histogram (e, bins=num_bins, normed=True)
+    b_cdf = np.cumsum (b_counts)
+    e_cdf = np.cumsum (e_counts)
+    figure = plt.figure()
+    ax = figure.add_subplot(111)
+    ax.plot (b_bin_edges[1:], b_cdf/b_cdf[-1], label= 'before election')
+    ax.plot (e_bin_edges[1:], e_cdf/e_cdf[-1], label='election term')
+    # fig, ax = plt.subplots()
+    # sns.kdeplot(b,ax=ax, cumulative=True, label='before election')
+    # sns.kdeplot(e,ax=ax, cumulative=True, label='election term')
     # sns.distplot(x,
     #     hist_kws=dict(cumulative=True),
     #     kde_kws=dict(cumulative=True))
     plt.savefig(dir_in + "burst/" + filename)
+    plt.clf()
+
 
 def distribution_process(distribution, dist_class):
     dist_plot = defaultdict(int)
