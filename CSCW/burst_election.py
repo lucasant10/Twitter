@@ -13,19 +13,20 @@ import math
 import seaborn as sns
 from scipy.stats import ks_2samp
 from collections import defaultdict
+from beautifultable import BeautifulTable
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 def week_tw(time):
-    first = 1396483200000
+    first = 1391385600000
     week= 604800000
     return math.ceil((time - first)/week)
 
 def dist_dep(val):
-    bef = np.zeros(14)
-    elec = np.zeros(14)
-    for i in range(14):
+    bef = np.zeros(17)
+    elec = np.zeros(17)
+    for i in range(17):
         bef[i] += val[i]
-        elec[i] += val[i+14]
+        elec[i] += val[i+17]
     return bef, elec
 
 def plot_cdf(b, e, filename):
@@ -48,9 +49,22 @@ def plot_cdf(b, e, filename):
     plt.savefig(dir_in + "burst/" + filename)
     plt.clf()
 
+def category(val):
+    if val < 0.001:
+        return '0.001'
+    elif val < 0.01:
+        return '0.01'
+    elif val < 0.03:
+        return '0.03'
+    else:
+        return '0.05'
+
+
+
 def distribution_process(distribution, dist_class):
     dist_plot = defaultdict(int)
     more_in_election = defaultdict(int)
+    category = dict({'nao_eleitos': defaultdict(int), 'reeleitos': defaultdict(int), 'novos': defaultdict(int)})
     total = defaultdict(int)
     for cond, dep in distribution.items():
         total[cond] += 1
@@ -58,18 +72,20 @@ def distribution_process(distribution, dist_class):
             before, election = dist_dep(val)
             ks = ks_2samp(before, election)
             # reject null hypotesis
-            if ks[1] > 0.05:
+            if ks[1] < 0.05:
                 dist_plot[cond] += 1
-            else:
+                #plot_cdf(before, election, '%s_%s_%s.png' % (dist_class, cond, d))
                 if np.mean(before) < np.mean(election):
-                    plot_cdf(before, election, '%s_%s_%s.png' % (dist_class, cond, d))
-                    more_in_election[cond] += 1
-
-    print("same distribution")
-    print(dist_plot)
-    print("more in election")
-    print(more_in_election)
-
+                    category[cond][category(ks[1])] += 1
+    print(dist_class)
+    table = BeautifulTable()
+    table.column_headers = ["", "0.001", "0.01", "0.03", "0.05"]
+    table.append_row("reelected", category["reeleitos"]["0.001"], category["reeleitos"]["0.01"], category["reeleitos"]["0.03"], category["reeleitos"]["0.05"])
+    table.append_row("not_elected", category["nao_eleitos"]["0.001"], category["nao_eleitos"]["0.01"], category["nao_eleitos"]["0.03"], category["nao_eleitos"]["0.05"])
+    table.append_row("newcomer", category["novos"]["0.001"], category["novos"]["0.01"], category["novos"]["0.03"], category["novos"]["0.05"])
+    print(table)
+    print("percentage election")
+    print("reelected %0.2f, not_elected %0.2f,newcomer %0.2f" % ((dist_plot['reelected'] / total['reelected']), (dist_plot['nao_eleitos'] / total['nao_eleitos']),(dist_plot['novos'] / total['novos'])))
 
 if __name__ == "__main__":
     cf = configparser.ConfigParser()
@@ -78,8 +94,8 @@ if __name__ == "__main__":
     dir_in = path['dir_in']
 
     # election
-    p1 = (1396483200000, 1404345600000)
-    p2 = (1404345600000, 1412294400000)
+    p1 = (1391385600000, 1401753600000)
+    p2 = (1401753600000, 1412294400000)
     
     pc = PoliticalClassification('cnn_s300.h5', 'cnn_s300.npy', 18)
 
@@ -91,12 +107,19 @@ if __name__ == "__main__":
         {'nao_eleitos': dict(), 'reeleitos': dict(), 'novos': dict()})
     non_politics = dict(
         {'nao_eleitos': dict(), 'reeleitos': dict(), 'novos': dict()})
+    both = dict(
+        {'nao_eleitos': dict(), 'reeleitos': dict(), 'novos': dict()})
     for period in periods:
         print('getting data')
         tweets = db.tweets.find({'created_at': {'$gte': period[0], '$lt': period[1]},
                                  'cond_55': {'$exists': True}})
         print('processing tweets')
         for tweet in tweets:
+
+            if tweet['user_id'] not in both[tweet['cond_55']]:
+                both[tweet['cond_55']][tweet['user_id']] = defaultdict(int)
+            both[tweet['cond_55']][tweet['user_id']][week_tw(tweet['created_at'])] += 1
+
             if pc.is_political(tweet['text_processed']):
                 if tweet['user_id'] not in politics[tweet['cond_55']]:
                     politics[tweet['cond_55']
@@ -111,5 +134,6 @@ if __name__ == "__main__":
 
     print('processing distributions')
 
+    distribution_process(both, 'both')
     distribution_process(politics, 'politics')
     distribution_process(non_politics, 'non-politics')
