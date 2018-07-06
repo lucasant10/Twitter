@@ -48,41 +48,6 @@ def plot_cdf(b, e, filename):
     plt.savefig(dir_in + "burst/" + filename)
     plt.clf()
 
-    def plot_cdf(politics, non_politics, label):
-    map_l = {'novos': 'New', 'reeleitos': 'Reelected', 'nao_eleitos': 'Loser'}
-    num_bins = 100
-    p_values = list()
-    np_values = list()
-    for cond, values in politics.items():
-        p_values += values
-        np_values += non_politics[cond]
-    print(stats.ks_2samp(p_values,np_values))
-    # p_values = np.where(np.isneginf(np.log10(p_values)), 0, np.log10(p_values))
-    # np_values = np.where(np.isneginf(np.log10(np_values)), 0, np.log10(np_values))
-    p_counts, p_bin_edges = np.histogram (p_values, bins=num_bins, normed=True)
-    np_counts, np_bin_edges = np.histogram (np_values, bins=num_bins, normed=True)
-    p_cdf = np.cumsum (p_counts)
-    np_cdf = np.cumsum (np_counts)
-    figure = plt.figure(figsize=(15, 8))
-    ax = figure.add_subplot(111)
-    ax.plot (p_bin_edges[1:], p_cdf/p_cdf[-1], label= 'political')
-    ax.plot (np_bin_edges[1:], np_cdf/np_cdf[-1], label='non-political')
-    ax.legend(loc='upper left')
-    ax.set_xlabel('# of %s tweets'% str.lower(label))
-    ax.set_ylabel('F(x)')
-    ax.xaxis.label.set_size(20)
-    ax.yaxis.label.set_size(20)
-    #ax.set_xscale("log", basex=2)
-    #ax.set_yticks(np.arange(0.5, 1.0, step=0.1))
-    ax.set_xticks(np.arange(0, 50, step=1))
-    plt.xlim(xmax=50)
-    plt.xlim(xmin=0)
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
-    plt.savefig(dir_in + 'cdf_%s.png' % (label))
-    plt.clf()
-
-
 def distribution_process(distribution, dist_class):
     dist_plot = defaultdict(int)
     more_in_election = defaultdict(int)
