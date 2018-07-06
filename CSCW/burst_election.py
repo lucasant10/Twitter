@@ -29,7 +29,7 @@ def dist_dep(val):
     return bef, elec
 
 def plot_cdf(b, e, filename):
-    num_bins = 14
+    num_bins = 100
     b_counts, b_bin_edges = np.histogram (b, bins=num_bins, normed=True)
     e_counts, e_bin_edges = np.histogram (e, bins=num_bins, normed=True)
     b_cdf = np.cumsum (b_counts)
@@ -38,6 +38,7 @@ def plot_cdf(b, e, filename):
     ax = figure.add_subplot(111)
     ax.plot (b_bin_edges[1:], b_cdf/b_cdf[-1], label= 'before election')
     ax.plot (e_bin_edges[1:], e_cdf/e_cdf[-1], label='election term')
+    ax.legend(loc='upper left')
     # fig, ax = plt.subplots()
     # sns.kdeplot(b,ax=ax, cumulative=True, label='before election')
     # sns.kdeplot(e,ax=ax, cumulative=True, label='election term')
