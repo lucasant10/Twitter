@@ -29,7 +29,7 @@ def dist_dep(val):
     return bef, elec
 
 def plot_cdf(b, e, filename):
-    num_bins = 14
+    num_bins = 100
     b_counts, b_bin_edges = np.histogram (b, bins=num_bins, normed=True)
     e_counts, e_bin_edges = np.histogram (e, bins=num_bins, normed=True)
     b_cdf = np.cumsum (b_counts)
