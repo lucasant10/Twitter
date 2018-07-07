@@ -51,6 +51,8 @@ def plot_pca(dep_vector, filename):
     vec = [x[:-1] for x in dep_vector]
     vec = np.where(np.isneginf(np.log2(vec)), 0, np.log2(vec))
     Y = pca.fit_transform(vec)
+    exp = pca.explained_variance_ratio_
+    print(pca.explained_variance_ratio_)
     ax.scatter(Y[:, 0], Y[:, 1], c=colors)
     #ax.set_title("PCA Non Political by periods")
     plt.savefig(dir_in + filename)
@@ -118,15 +120,52 @@ def make_kdeplot(varX, varY,limits, N, colorsc, title):
     fig = go.Figure(data = data, layout= layout)
     plot(fig, filename = 'kde_ratio')
 
-def plot_kde(Y, filename, colors, color):
+def plot_kde(Y, filename, colors, color, lista, cond):
     plt.clf()
     sns.set(style="white")
     sns.kdeplot(Y[:, 0], Y[:, 1], shade=True, bw=.15, cmap=colors, shade_lowest=False, alpha=0.6)
     sns.regplot(x=Y[:, 0], y=Y[:, 1], fit_reg=False, scatter_kws={"color":color,"alpha":0.7} )
     plt.ylim(-4, 6)
-    plt.ylim(-6, 8)
+    plt.xlim(-2, 6)
+    plt.xticks(fontsize=35)
+    plt.yticks(fontsize=35)
+    for i, v in enumerate(lista):
+        plt.annotate('%s%d'%(cond, (i+1)), xy=(v[0], v[1]), textcoords='offset points', fontsize=25)
     plt.savefig(dir_in + filename)
 
+def plot_ratio(ratio, filename, lista, person):
+    label = ['10/13','03/14', '07/14', '10/14', '12/14', '04/15']
+    items = ratio[lista]
+    plt.clf()
+    sns.set(style="white")
+    for i, v in enumerate(items):
+        plt.plot(v, linestyle='-', marker='o')
+    plt.legend(['%s1'% person, '%s2'% person, '%s3'% person], fontsize=25)
+    plt.xticks(range(6), label,fontsize=35)
+    plt.yticks(fontsize=35)
+    plt.savefig(dir_in + filename)
+
+def plot_values(total, filename, lista, person):
+    label = ['10/13','03/14', '07/14', '10/14', '12/14', '04/15']
+    items = total[lista]
+    plt.clf()
+    sns.set(style="white")
+    for i, v in enumerate(items):
+        plt.plot(v, linestyle='-', marker='o')
+    plt.legend(['%s1'% person, '%s2'% person, '%s3'% person], fontsize=25)
+    plt.xticks(range(6), label,fontsize=35)
+    plt.yticks(fontsize=35)
+    #plt.yscale('log', basey=2)
+    plt.savefig(dir_in + filename)
+
+
+def deputy_index(Y, lista):
+    x = np.around(Y[:,0], decimals=2)
+    y = np.around(Y[:,1], decimals=2)
+    idx = list()
+    for i in lista:
+        idx.append(np.argwhere((x==i[0]) & (y==i[1])))
+    return idx
 
 if __name__ == "__main__":
     cf = configparser.ConfigParser()
@@ -211,10 +250,10 @@ if __name__ == "__main__":
     #plot_tsne(vec_n_pol, 'tsne_log_n_political.png')
 
     ratio = list()
-    for i, t in enumerate(vec_n_pol):
+    for i, t in enumerate(vec_pol):
         tmp = list()
         for k, v in enumerate(t[:6]):
-            tmp += [(v + 1) / (vec_pol[i][k] + 1)]
+            tmp += [((v +1) / (vec_n_pol[i][k] + v + 1))]
         tmp += t[7:]
         ratio.append(tmp)
     
@@ -237,9 +276,84 @@ if __name__ == "__main__":
     r = np.asarray(r)
     n = np.asarray(n)
     l = np.asarray(l)
-    plot_kde(np.asarray(r), 'kde_ratio_sns_reelected.png', "Purples",'purple')
-    plot_kde(np.asarray(n), 'kde_ratio_sns_new.png', "Greens",'green')
-    plot_kde(np.asarray(l), 'kde_ratio_sns_loser.png', "Oranges", 'orange')
+
+    dep_l = [[-1.31, 0.77],[ 0.  ,-0.05], [ 2.75,-2.2 ]]
+    dep_r = [[-1.23, 0.89], [-0.12,-0.01],[ 4.72,-0.97]]
+    dep_n = [[-1.48, 0.65], [ 0.02,-0.02],[ 3.84,-2.6 ]]
+    
+    plot_kde(np.asarray(r), 'kde_ratio_sns_reelected.png', "Purples",'purple', dep_r,'R')
+    plot_kde(np.asarray(n), 'kde_ratio_sns_new.png', "Greens",'green', dep_n, 'N')
+    plot_kde(np.asarray(l), 'kde_ratio_sns_loser.png', "Oranges", 'orange', dep_l, 'L')
+
+    index_l = deputy_index(l, dep_l)
+    index_r = deputy_index(r, dep_r)
+    index_n = deputy_index(n, dep_n)
+
+    print(index_l)
+    print(index_r)
+    print(index_n)
+
+    index_l = [188,18,88]
+    index_r = [231, 87, 100]
+    index_n = [144, 16, 43]
+
+    r = list()
+    l =list()
+    n = list()
+    for i, v in enumerate(ratio):
+        if v[-1] == 'reeleitos':
+            r.append(v[:-1])
+        elif v[-1] == 'novos':
+            n.append(v[:-1])
+        else:
+            l.append(v[:-1])
+
+    r = np.asarray(r)
+    n = np.asarray(n)
+    l = np.asarray(l)
+    
+    plot_ratio(l,'dep_ratio_sns_loser.png', index_l ,'L')
+    plot_ratio(r,'dep_ratio_sns_reelected.png', index_r,'R')
+    plot_ratio(n,'dep_ratio_sns_new.png', index_n,'N')
+
+    total = list()
+    for i, t in enumerate(vec_pol):
+        tmp = list()
+        for k, v in enumerate(t[:6]):
+            tmp += [(v + vec_n_pol[i][k])]
+        tmp += t[7:]
+        total.append(tmp)
+
+    r = list()
+    l =list()
+    n = list()
+    for i, v in enumerate(total):
+        if v[-1] == 'reeleitos':
+            r.append(v[:-1])
+        elif v[-1] == 'novos':
+            n.append(v[:-1])
+        else:
+            l.append(v[:-1])
+
+    r = np.asarray(r)
+    n = np.asarray(n)
+    l = np.asarray(l)
+
+    plot_values(l,'dep_total_sns_loser.png', index_l,'L' )
+    plot_values(r,'dep_total_sns_reelected.png', index_r, 'R')
+    plot_values(n,'dep_total_sns_new.png', index_n,'N')
+    
+
+
+    # f =  open(dir_in + "CSCW/pontos.txt", 'w')
+    # f.write(np.array2string(l, precision=2, separator=',',suppress_small=True))
+    # f.write('\n')
+    # f.write(np.array2string(r, precision=2, separator=',',suppress_small=True))
+    # f.write('\n')
+    # f.write(np.array2string(n, precision=2, separator=',',suppress_small=True))
+    # f.close()
+
+    
     
     # f_pol = dict({'nao_eleitos': list(), 'reeleitos': list(), 'novos': list()})
     # for cond, dep in non_politics.items():
