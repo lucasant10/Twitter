@@ -20,6 +20,8 @@ import plotly.graph_objs as go
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 import seaborn as sns
 import os
+from inactive_users import Inactive_Users
+import csv
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 def plot_tsne(dep_vector, filename):
@@ -167,6 +169,15 @@ def deputy_index(Y, lista):
         idx.append(np.argwhere((x==i[0]) & (y==i[1])))
     return idx
 
+def print_table(table, Y):
+    tmp =list()
+    for i, v in enumerate(table):
+        tmp += v
+        tmp += [Y[i,0],Y[i,1]]
+    with open(dir_in+'table_pedro.csv', 'w') as f:
+        writer = csv.writer(f)
+        writer.writerows(tmp)
+
 if __name__ == "__main__":
     cf = configparser.ConfigParser()
     cf.read("../file_path.properties")
@@ -194,6 +205,9 @@ if __name__ == "__main__":
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
 
+    inactive = Inactive_Users()
+    inact_users = inactive.inactive_users()
+
     periods = [p1, p2, p3, p4, p5, p6]
     politics = dict(
         {'nao_eleitos': dict(), 'reeleitos': dict(), 'novos': dict()})
@@ -206,7 +220,10 @@ if __name__ == "__main__":
                                  'cond_55': {'$exists': True}})
         print('processing tweets')
         for tweet in tweets:
+            if tweet['user_id'] in inact_users:
+                continue
             count_tweets[tweet['user_id']] += 1
+            count_tweets_per[tweet['user_id']][] += 1
             if pc.is_political(tweet['text_processed']):
                 if tweet['user_id'] not in politics[tweet['cond_55']]:
                     politics[tweet['cond_55']
@@ -250,14 +267,20 @@ if __name__ == "__main__":
     #plot_tsne(vec_n_pol, 'tsne_log_n_political.png')
 
     ratio = list()
+    table = list()
     for i, t in enumerate(vec_pol):
         tmp = list()
+        tmp2 = list()
         for k, v in enumerate(t[:6]):
             tmp += [((v +1) / (vec_n_pol[i][k] + v + 1))]
+            tmp2 += [(vec_n_pol[i][k] + v )]
         tmp += t[7:]
+        tmp2 += tmp
         ratio.append(tmp)
+        table.append(tmp2)
     
     Y = plot_pca(ratio, 'pca_log_political_ratio.png')
+    print_table(table,Y)
     # N=200
     # limits =[-6,11,-4,6]
     # fig=make_kdeplot(Y[:, 0], Y[:, 1], limits,
