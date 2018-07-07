@@ -14,6 +14,7 @@ import seaborn as sns
 from scipy.stats import ks_2samp
 from collections import defaultdict
 from beautifultable import BeautifulTable
+from inactive_users import Inactive_Users
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 def week_tw(time):
@@ -106,6 +107,9 @@ if __name__ == "__main__":
     db = client.twitterdb
 
     periods = [p1, p2]
+
+    inact_users = Inactive_Users()
+
     politics = dict(
         {'nao_eleitos': dict(), 'reeleitos': dict(), 'novos': dict()})
     non_politics = dict(
@@ -118,7 +122,8 @@ if __name__ == "__main__":
                                  'cond_55': {'$exists': True}})
         print('processing tweets')
         for tweet in tweets:
-
+            if tweet['user_id'] in inact_users.inactive:
+                continue
             if tweet['user_id'] not in both[tweet['cond_55']]:
                 both[tweet['cond_55']][tweet['user_id']] = defaultdict(int)
             both[tweet['cond_55']][tweet['user_id']][week_tw(tweet['created_at'])] += 1
