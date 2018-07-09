@@ -170,13 +170,15 @@ def deputy_index(Y, lista):
     return idx
 
 def print_table(table, Y):
-    tmp =list()
+    t_print =list()
     for i, v in enumerate(table):
+        tmp = list()
         tmp += v
         tmp += [Y[i,0],Y[i,1]]
+        t_print.append(tmp)
     with open(dir_in+'table_pedro.csv', 'w') as f:
         writer = csv.writer(f)
-        writer.writerows(tmp)
+        writer.writerows(t_print)
 
 if __name__ == "__main__":
     cf = configparser.ConfigParser()
@@ -218,12 +220,15 @@ if __name__ == "__main__":
         print('getting data')
         tweets = db.tweets.find({'created_at': {'$gte': period[0], '$lt': period[1]},
                                  'cond_55': {'$exists': True}})
+        #tweets = db.tweets.aggregate([ { '$sample': { 'size': 10000 }},
+        #    {'$match': {'created_at': {'$gte': period[0], '$lt': period[1]},
+        #        'cond_55': {'$exists': True}}}], allowDiskUse=True)
+
         print('processing tweets')
         for tweet in tweets:
             if tweet['user_id'] in inact_users:
                 continue
             count_tweets[tweet['user_id']] += 1
-            count_tweets_per[tweet['user_id']][] += 1
             if pc.is_political(tweet['text_processed']):
                 if tweet['user_id'] not in politics[tweet['cond_55']]:
                     politics[tweet['cond_55']
