@@ -281,8 +281,8 @@ if __name__ == "__main__":
         tmp = list()
         tmp2 = list()
         for k, v in enumerate(t[:6]):
-
-            tmp += [safe_div(v, (vec_n_pol[i][k] + v))]
+            tmp += [(v / (vec_n_pol[i][k] + v +1))]
+            #tmp += [safe_div(v, (vec_n_pol[i][k] + v))]
             tmp2 += [(vec_n_pol[i][k] + v )]
         tmp += t[7:]
         tmp2 += tmp
