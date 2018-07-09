@@ -178,7 +178,7 @@ def print_table(table, Y):
     for i, v in enumerate(table):
         tmp = list()
         tmp += v
-        tmp += [Y[i,0],Y[i,1]]
+        tmp += [ np.around(Y[i,0], decimals=2), np.around(Y[i,1], decimals=2)]
         t_print.append(tmp)
     with open(dir_in+'table_pedro.csv', 'w') as f:
         writer = csv.writer(f)
@@ -224,7 +224,7 @@ if __name__ == "__main__":
         print('getting data')
         tweets = db.tweets.find({'created_at': {'$gte': period[0], '$lt': period[1]},
                                  'cond_55': {'$exists': True}})
-        #tweets = db.tweets.aggregate([ { '$sample': { 'size': 10000 }},
+        #tweets = db.tweets.aggregate([ { '$sample': { 'size': 100000 }},
         #    {'$match': {'created_at': {'$gte': period[0], '$lt': period[1]},
         #        'cond_55': {'$exists': True}}}], allowDiskUse=True)
 
@@ -310,10 +310,11 @@ if __name__ == "__main__":
     n = np.asarray(n)
     l = np.asarray(l)
 
-    dep_l = [[-1.31, 0.77],[ 0.  ,-0.05], [ 2.75,-2.2 ]]
-    dep_r = [[-1.23, 0.89], [-0.12,-0.01],[ 4.72,-0.97]]
-    dep_n = [[-1.48, 0.65], [ 0.02,-0.02],[ 3.84,-2.6 ]]
-    
+    dep_l = [[4.05, 0.16],[ -1.33, 0.03], [ 0.41, 1.38 ], [0.39, -0.62]]
+    dep_r = [[4.99, 0.16],[ -1.47, 0.01], [ 0.65, 1.83 ], [0.29, -1.04]]
+    dep_n = [[5.48, 0.24],[ -1.78, 0.25], [ 0.10, 1.78 ], [0.11, -1.16]]
+
+
     plot_kde(np.asarray(r), 'kde_ratio_sns_reelected.png', "Purples",'purple', dep_r,'RE')
     plot_kde(np.asarray(n), 'kde_ratio_sns_new.png', "Greens",'green', dep_n, 'NC')
     plot_kde(np.asarray(l), 'kde_ratio_sns_loser.png', "Oranges", 'orange', dep_l, 'LS')
@@ -326,9 +327,9 @@ if __name__ == "__main__":
     print(index_r)
     print(index_n)
 
-    index_l = [188,18,88]
-    index_r = [231, 87, 100]
-    index_n = [144, 16, 43]
+    index_l = [55,10,101,72]
+    index_r = [4,13,130,68]
+    index_n = [60,126,118,99]
 
     r = list()
     l =list()
