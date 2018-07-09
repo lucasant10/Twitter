@@ -24,6 +24,10 @@ from inactive_users import Inactive_Users
 import csv
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
+def safe_div(x,y):
+    if y==0: return 0
+    return x/y
+
 def plot_tsne(dep_vector, filename):
     map_l = {'novos': 'Elected', 'reeleitos': 'Reelected',
              'nao_eleitos': 'Not Elected'}
@@ -184,7 +188,7 @@ if __name__ == "__main__":
     cf = configparser.ConfigParser()
     cf.read("../file_path.properties")
     path = dict(cf.items("file_path"))
-    dir_in = path['dir_in']
+    dir_in = path['dir_dbx']
 
     # pre election
     p1 = (1380596400000, 1393642800000)
@@ -277,7 +281,8 @@ if __name__ == "__main__":
         tmp = list()
         tmp2 = list()
         for k, v in enumerate(t[:6]):
-            tmp += [((v +1) / (vec_n_pol[i][k] + v + 1))]
+
+            tmp += [safe_div(v, (vec_n_pol[i][k] + v))]
             tmp2 += [(vec_n_pol[i][k] + v )]
         tmp += t[7:]
         tmp2 += tmp
@@ -309,9 +314,9 @@ if __name__ == "__main__":
     dep_r = [[-1.23, 0.89], [-0.12,-0.01],[ 4.72,-0.97]]
     dep_n = [[-1.48, 0.65], [ 0.02,-0.02],[ 3.84,-2.6 ]]
     
-    plot_kde(np.asarray(r), 'kde_ratio_sns_reelected.png', "Purples",'purple', dep_r,'R')
-    plot_kde(np.asarray(n), 'kde_ratio_sns_new.png', "Greens",'green', dep_n, 'N')
-    plot_kde(np.asarray(l), 'kde_ratio_sns_loser.png', "Oranges", 'orange', dep_l, 'L')
+    plot_kde(np.asarray(r), 'kde_ratio_sns_reelected.png', "Purples",'purple', dep_r,'RE')
+    plot_kde(np.asarray(n), 'kde_ratio_sns_new.png', "Greens",'green', dep_n, 'NC')
+    plot_kde(np.asarray(l), 'kde_ratio_sns_loser.png', "Oranges", 'orange', dep_l, 'LS')
 
     index_l = deputy_index(l, dep_l)
     index_r = deputy_index(r, dep_r)
@@ -340,9 +345,9 @@ if __name__ == "__main__":
     n = np.asarray(n)
     l = np.asarray(l)
     
-    plot_ratio(l,'dep_ratio_sns_loser.png', index_l ,'L')
-    plot_ratio(r,'dep_ratio_sns_reelected.png', index_r,'R')
-    plot_ratio(n,'dep_ratio_sns_new.png', index_n,'N')
+    plot_ratio(l,'dep_ratio_sns_loser.png', index_l ,'LS')
+    plot_ratio(r,'dep_ratio_sns_reelected.png', index_r,'RE')
+    plot_ratio(n,'dep_ratio_sns_new.png', index_n,'NC')
 
     total = list()
     for i, t in enumerate(vec_pol):
@@ -367,9 +372,9 @@ if __name__ == "__main__":
     n = np.asarray(n)
     l = np.asarray(l)
 
-    plot_values(l,'dep_total_sns_loser.png', index_l,'L' )
-    plot_values(r,'dep_total_sns_reelected.png', index_r, 'R')
-    plot_values(n,'dep_total_sns_new.png', index_n,'N')
+    plot_values(l,'dep_total_sns_loser.png', index_l,'LS' )
+    plot_values(r,'dep_total_sns_reelected.png', index_r, 'RE')
+    plot_values(n,'dep_total_sns_new.png', index_n,'NC')
     
 
 
