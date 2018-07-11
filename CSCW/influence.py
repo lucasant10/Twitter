@@ -16,6 +16,7 @@ from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 import plotly.graph_objs as go
 from scipy import stats
 import os
+from inactive_users import Inactive_Users
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 
@@ -128,15 +129,15 @@ def plot_cdf(politics, non_politics, label):
     ax.legend(loc='upper left')
     ax.set_xlabel('# of %s tweets'% str.lower(label))
     ax.set_ylabel('F(x)')
-    ax.xaxis.label.set_size(20)
-    ax.yaxis.label.set_size(20)  
+    ax.xaxis.label.set_size(28)
+    ax.yaxis.label.set_size(28)  
     #ax.set_xscale("log", basex=2)
     #ax.set_yticks(np.arange(0.5, 1.0, step=0.1))
     ax.set_xticks(np.arange(0, 50, step=1))
     plt.xlim(xmax=50)
     plt.xlim(xmin=0)  
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
+    plt.xticks(fontsize=28)
+    plt.yticks(fontsize=28)
     plt.savefig(dir_in + 'cdf_%s.png' % (label))
     plt.clf()
 
@@ -153,6 +154,9 @@ if __name__ == "__main__":
     db = client.twitterdb
     tweets = db.tweets.find({'created_at': {
                             '$gte': 1380596400000, '$lt': 1443668400000}, 'cond_55': {'$exists': True}})
+
+    inactive = Inactive_Users()
+    inact_users = inactive.inactive_users()
 
     pop_score_politics = dict(
         {'nao_eleitos': get_dates(), 'reeleitos': get_dates(), 'novos': get_dates()})
@@ -175,6 +179,8 @@ if __name__ == "__main__":
 
     print('processing tweets')
     for tweet in tweets:
+        if tweet['user_id'] in inact_users:
+            continue
         favorites = int(tweet['favorites'])
         retweets = int(tweet['retweets'])
         if pc.is_political(tweet['text_processed']):
