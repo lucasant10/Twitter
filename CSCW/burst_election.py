@@ -65,8 +65,9 @@ def pvalue(val):
 
 
 def distribution_process(distribution, dist_class):
-    dist_plot = defaultdict(int)
-    more_in_election = defaultdict(int)
+    increase = defaultdict(int)
+    decrease = defaultdict(int)
+    same = defaultdict(int)
     category = dict({'nao_eleitos': defaultdict(int), 'reeleitos': defaultdict(int), 'novos': defaultdict(int)})
     total = defaultdict(int)
     for cond, dep in distribution.items():
@@ -76,20 +77,20 @@ def distribution_process(distribution, dist_class):
             ks = ks_2samp(before, election)
             # reject null hypotesis
             if ks[1] < 0.05:
-                #dist_plot[cond] += 1
-                #plot_cdf(before, election, '%s_%s_%s.png' % (dist_class, cond, d))
                 if np.mean(before) < np.mean(election):
-                    dist_plot[cond] += 1
-                    category[cond][pvalue(ks[1])] += 1
+                    increase[cond] += 1
+                else:
+                    decrease[cond] += 1
+            else:
+                same[cond] += 1
     print(dist_class)
     table = BeautifulTable()
-    table.column_headers = ["","0.0001", "0.001", "0.01", "0.03", "0.05"]
-    table.append_row(["reelected",category["reeleitos"]["0.0001"], category["reeleitos"]["0.001"], category["reeleitos"]["0.01"], category["reeleitos"]["0.03"], category["reeleitos"]["0.05"]])
-    table.append_row(["not_elected",category["nao_eleitos"]["0.0001"], category["nao_eleitos"]["0.001"], category["nao_eleitos"]["0.01"], category["nao_eleitos"]["0.03"], category["nao_eleitos"]["0.05"]])
-    table.append_row(["newcomer", category["novos"]["0.0001"] ,category["novos"]["0.001"], category["novos"]["0.01"], category["novos"]["0.03"], category["novos"]["0.05"]])
+    table.column_headers = ["","RE", "LS", "NC", "total"]
+    table.append_row("increase", increase["reeleitos"], increase["nao_eleitos"], increase["novos"], (increase["reeleitos"] + increase["nao_eleitos"] + increase["novos"]))
+    table.append_row("maintained",same["reeleitos"], same["nao_eleitos"], same["novos"],(same["reeleitos"] + same["nao_eleitos"] + same["novos"]))
+    table.append_row("decrease",decrease["reeleitos"], decrease["nao_eleitos"], decrease["novos"], (decrease["reeleitos"] + decrease["nao_eleitos"] + decrease["novos"]))
+    table.append_row("total",(decrease["reeleitos"]+same["reeleitos"]+decrease["reeleitos"]), (decrease["nao_eleitos"]+same["nao_eleitos"]+decrease["nao_eleitos"]), (decrease["novos"]+same["novos"]+decrease["novos"]) )
     print(table)
-    print("percentage election")
-    print("reelected %0.2f, not_elected %0.2f,newcomer %0.2f" % ((dist_plot['reeleitos'] / total['reeleitos']), (dist_plot['nao_eleitos'] / total['nao_eleitos']),(dist_plot['novos'] / total['novos'])))
 
 if __name__ == "__main__":
     cf = configparser.ConfigParser()
