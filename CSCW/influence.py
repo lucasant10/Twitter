@@ -14,6 +14,7 @@ from datetime import datetime
 from dateutil.rrule import rrule, MONTHLY
 from plotly.offline import download_plotlyjs, init_notebook_mode, plot, iplot
 import plotly.graph_objs as go
+from scipy import stats
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
@@ -31,7 +32,7 @@ def get_dates():
 
 def plotly_dist(political, non_political, filename):
     map_c = {'novos': 'green', 'reeleitos': 'purple', 'nao_eleitos': 'orange'}
-    map_l = {'novos': 'N', 'reeleitos': 'R', 'nao_eleitos': 'L'}
+    map_l = {'novos': 'NC', 'reeleitos': 'RE', 'nao_eleitos': 'LS'}
     data = list()
     for condition, counter in political.items():
         labels, p_influence = zip(
@@ -97,6 +98,8 @@ def plot_pdf(politics, non_politics, label):
         ax.legend(loc='upper left')
         ax.set_xlabel('%s' % label)
         ax.set_ylabel('% of tweets')
+        ax.xaxis.label.set_size(20)
+        ax.yaxis.label.set_size(20)
         #ax.set_yticks(np.arange(0.5, 1.1, step=0.1))
         #ax.set_xticks(np.arange(0, 1, step=1))
         ax.set_title("%s %s-PDF " %(map_l[cond], label))
@@ -106,25 +109,36 @@ def plot_pdf(politics, non_politics, label):
 def plot_cdf(politics, non_politics, label):
     map_l = {'novos': 'New', 'reeleitos': 'Reelected', 'nao_eleitos': 'Loser'}
     num_bins = 100
+    p_values = list()
+    np_values = list()
     for cond, values in politics.items():
-        p_values = np.where(np.isneginf(np.log(values)), 0, np.log(values))
-        np_values = np.where(np.isneginf(np.log(non_politics[cond])), 0, np.log(non_politics[cond]))
-        p_counts, p_bin_edges = np.histogram (p_values, bins=num_bins, normed=True)
-        np_counts, np_bin_edges = np.histogram (np_values, bins=num_bins, normed=True)
-        p_cdf = np.cumsum (p_counts)
-        np_cdf = np.cumsum (np_counts)
-        figure = plt.figure(figsize=(15, 8))
-        ax = figure.add_subplot(111)
-        ax.plot (p_bin_edges[1:], p_cdf/p_cdf[-1], label= 'political')
-        ax.plot (np_bin_edges[1:], np_cdf/np_cdf[-1], label='non-political')
-        ax.legend(loc='upper left')
-        ax.set_xlabel('log %s' % label)
-        ax.set_ylabel('% of tweets')
-        ax.set_yticks(np.arange(0.5, 1.1, step=0.1))
-        ax.set_xticks(np.arange(0, 12, step=1))
-        ax.set_title("%s %s-CDF " %(map_l[cond], label))
-        plt.savefig(dir_in + 'cdf_%s_%s.png' % (label, map_l[cond]))
-        plt.clf()
+        p_values += values
+        np_values += non_politics[cond]
+    print(stats.ks_2samp(p_values,np_values))
+    # p_values = np.where(np.isneginf(np.log10(p_values)), 0, np.log10(p_values))
+    # np_values = np.where(np.isneginf(np.log10(np_values)), 0, np.log10(np_values))
+    p_counts, p_bin_edges = np.histogram (p_values, bins=num_bins, normed=True)
+    np_counts, np_bin_edges = np.histogram (np_values, bins=num_bins, normed=True)
+    p_cdf = np.cumsum (p_counts)
+    np_cdf = np.cumsum (np_counts)
+    figure = plt.figure(figsize=(15, 8))
+    ax = figure.add_subplot(111)
+    ax.plot (p_bin_edges[1:], p_cdf/p_cdf[-1], label= 'political')
+    ax.plot (np_bin_edges[1:], np_cdf/np_cdf[-1], label='non-political')
+    ax.legend(loc='upper left')
+    ax.set_xlabel('# of %s tweets'% str.lower(label))
+    ax.set_ylabel('F(x)')
+    ax.xaxis.label.set_size(20)
+    ax.yaxis.label.set_size(20)  
+    #ax.set_xscale("log", basex=2)
+    #ax.set_yticks(np.arange(0.5, 1.0, step=0.1))
+    ax.set_xticks(np.arange(0, 50, step=1))
+    plt.xlim(xmax=50)
+    plt.xlim(xmin=0)  
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
+    plt.savefig(dir_in + 'cdf_%s.png' % (label))
+    plt.clf()
 
 
 if __name__ == "__main__":

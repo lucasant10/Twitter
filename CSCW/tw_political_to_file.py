@@ -22,12 +22,13 @@ if __name__ == "__main__":
 
     client = pymongo.MongoClient("mongodb://localhost:27017")
     db = client.twitterdb
-    tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1443830400000}, 'cond_55': {'$exists': True}})
+    tweets = db.tweets.aggregate([{ '$sample': { 'size': 1000 }}])
+    #tweets = db.tweets.find({'created_at': {'$gte': 1380585600000, '$lt': 1443830400000}, 'cond_55': {'$exists': True}})
 
     pol = ''
     n_pol = ''
     for tw in tweets:
-        tweet = tw['text_processed']
+        tweet = tw['text']
         if pc.is_political(tweet):
             pol += tweet + '\n'
         else:
