@@ -116,8 +116,8 @@ def plot_cdf(politics, non_politics, label):
         p_values += values
         np_values += non_politics[cond]
     print(stats.ks_2samp(p_values,np_values))
-    p_values = np.where(np.asarray(values) >=50, 50, np.asarray(values))
-    np_values = np.where(np.asarray(non_politics[cond]) >=50, 50, np.asarray(non_politics[cond]))
+    p_values = np.where(np.asarray(p_values) >=50, 50, np.asarray(p_values))
+    np_values = np.where(np.asarray(np_values) >=50, 50, np.asarray(np_values))
     # p_values = np.where(np.isneginf(np.log10(p_values)), 0, np.log10(p_values))
     # np_values = np.where(np.isneginf(np.log10(np_values)), 0, np.log10(np_values))
     p_counts, p_bin_edges = np.histogram (p_values, bins=num_bins, normed=True)
