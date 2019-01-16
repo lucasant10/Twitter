@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     files = ([file for file in os.listdir(dir_dataset) if file.endswith('.json')])
 
-    df = pd.read_pickle(dir_dataset + "df_dep_tweets.pkl")
+    df = pd.read_pickle(dir_dataset + "dep_user_id.pkl")
     user_ids = set(df.user_id)
     workers = (mp.cpu_count()-1)
     logger.info(">>>>>> number of workes: %i" % workers)
