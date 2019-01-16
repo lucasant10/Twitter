@@ -14,13 +14,13 @@ try:
 except NameError:
     to_unicode = str
 
-def create_data_frame(file, df): 
+def create_data_frame(file, user_ids): 
     user_id = int(file.replace(".json",""))
     dep_tweets = list()
     tmp_df = pd.DataFrame()
     logger.info(">>>>>> processing file: %s" % file)
     try:
-        if not df[user_id == df['user_id']].empty:
+        if user_id in user_ids:
             logger.info(">>>>>> file: %s is in DF" % file)
             json_data = open(dir_dataset + file).read()
             data = json.loads(json_data)
@@ -53,11 +53,12 @@ if __name__ == "__main__":
     files = ([file for file in os.listdir(dir_dataset) if file.endswith('.json')])
 
     df = pd.read_pickle(dir_dataset + "df_dep_tweets.pkl")
+    user_ids = set(df.user_id)
     workers = (mp.cpu_count()-1)
     logger.info(">>>>>> number of workes: %i" % workers)
     pool = mp.Pool(processes=(workers))
     logger.info(">>>>>> Call create_data_frame with multiprocessing")
-    part_func = partial(create_data_frame, df=df)
+    part_func = partial(create_data_frame, user_ids=user_ids)
     data_frames = pool.map(part_func, files)
     logger.info(">>>>>> Concatenating DF")
     df_cont = pd.concat(data_frames)
