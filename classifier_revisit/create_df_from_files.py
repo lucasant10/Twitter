@@ -6,6 +6,7 @@ import configparser
 import logging
 import pandas as pd
 import multiprocessing as mp
+from functools import partial
 
 
 try:
@@ -13,7 +14,7 @@ try:
 except NameError:
     to_unicode = str
 
-def create_data_frame(file): 
+def create_data_frame(file, df): 
     user_id = int(file.replace(".json",""))
     dep_tweets = list()
     tmp_df = pd.DataFrame()
@@ -51,15 +52,17 @@ if __name__ == "__main__":
 
     files = ([file for file in os.listdir(dir_dataset) if file.endswith('.json')])
 
+    df = pd.read_pickle(dir_dataset + "df_dep_tweets.pkl")
     workers = (mp.cpu_count()-1)
     logger.info(">>>>>> number of workes: %i" % workers)
     pool = mp.Pool(processes=(workers))
     logger.info(">>>>>> Call create_data_frame with multiprocessing")
-    data_frames = pool.map(create_data_frame, files)
+    part_func = partial(create_data_frame, df=df)
+    data_frames = pool.map(part_func, files)
     logger.info(">>>>>> Concatenating DF")
-    df = pd.concat(data_frames)
+    df_cont = pd.concat(data_frames)
     logger.info(">>>>>> Saving DF")
-    df.to_pickle(dir_dataset + 'df_dep_tweets.pkl')
+    df_cont.to_pickle(dir_dataset + 'df_dep_tweets.pkl')
     
 
 
