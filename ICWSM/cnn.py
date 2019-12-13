@@ -1,10 +1,11 @@
+# -*- coding: utf-8 -*-
 import sys
 sys.path.append('../')
 import argparse
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import Embedding, Input
 from keras.models import Sequential, Model
-from keras.layers import Activation, Dense, Dropout, Flatten, Merge, Convolution1D, MaxPooling1D, GlobalMaxPooling1D
+from keras.layers import Activation, Dense, Dropout,concatenate, Flatten, Convolution1D, MaxPooling1D, GlobalMaxPooling1D
 import numpy as np
 from sklearn.metrics import make_scorer, f1_score, accuracy_score, recall_score, precision_score, classification_report, precision_recall_fscore_support
 from sklearn.ensemble  import GradientBoostingClassifier, RandomForestClassifier
@@ -17,10 +18,10 @@ import os
 import configparser
 import json
 import h5py
-import pymongo
 import math
 from f_map import F_map
 import os
+import pandas as pd
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 ### Preparing the text data
@@ -96,22 +97,21 @@ def get_embedding_weights():
     return embedding
 
 
-def select_tweets(tweets, tw_class):
-    # selects the tweets as in mean_glove_embedding method
+def select_texts(texts, classes):
+    # selects the texts as in embedding method
     # Processing
-    tweet_return = []
+    text_return = []
     class_return = []
-    for i, tweet in enumerate(tweets):
+    for i, text in enumerate(texts):
         _emb = 0
-        for w in tweet:
-            if w in word2vec_model:  # Check if embeeding there in GLove model
+        for w in text:
+            if w in word2vec_model:  # Check if embeeding there in embedding model
                 _emb += 1
-        if _emb:   # Not a blank tweet
-            tweet_return.append(tweet)
-            class_return.append(tw_class[i])
-    print('Tweets selected:', len(tweet_return))
-    return tweet_return, class_return
-
+        if _emb:   # Not a blank text
+            text_return.append(text)
+            class_return.append(classes[i])
+    print('texts selected:', len(text_return))
+    return text_return, class_return
 
 def gen_vocab(model_vec):
     vocab = dict([(k, v.index) for k, v in model_vec.vocab.items()])
@@ -119,12 +119,15 @@ def gen_vocab(model_vec):
     print(vocab['UNK'])
     return vocab
 
-def gen_sequence(vocab):
-    y_map = {'politics':0, 'non_politics':1}
+def gen_sequence(vocab, texts, tw_class):
+    y_map = dict()
+    for i, v in enumerate(sorted(set(tw_class))):
+        y_map[v] = i
+    print(y_map)
     X, y = [], []
-    for i, tweet in enumerate(tweets):
+    for i, text in enumerate(texts):
         seq = []
-        for word in tweet:
+        for word in text:
             seq.append(vocab.get(word, vocab['UNK']))
         X.append(seq)
         y.append(y_map[tw_class[i]])
@@ -165,7 +168,8 @@ def cnn_model(sequence_length, embedding_dim):
         convs.append(pool)
 
     if len(filter_sizes)>1:
-        out = Merge(mode='concat')(convs)
+        out = concatenate(convs)
+        #out = Merge(mode='concat')(convs)
     else:
         out = convs[0]
 
@@ -251,63 +255,37 @@ def train_CNN(X, y, inp_dim, model, weights, epochs=EPOCHS, batch_size=BATCH_SIZ
 
     return ((p / NO_OF_FOLDS), (r / NO_OF_FOLDS), (f1 / NO_OF_FOLDS))
 
-def get_tweets(db, sample, dimension):
+def get_tweets(dfe, sample, dimension):
     sample = math.floor(sample / 2)
-    tweets = list()
     tw_class = list()
+    political = list()
+    npolitical = list()
 
     if dimension == 'few_months':
-        tmp = db.politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
-        for tw in tmp:
-            tweets.append(tw['text_processed'].split(' '))
-            tw_class.append('politics')
-        tmp = db.non_politics.find().sort('created_at', pymongo.ASCENDING).limit(sample)
-        for tw in tmp:
-            tweets.append(tw['text_processed'].split(' '))
-            tw_class.append('non_politics')
+
+        political = dfe[dfe.apply(lambda x: x['political'] 
+                == True, axis=1)].sort_values(by=['created_at'],ascending=False)[:sample]['text_processed'].tolist()
+        tw_class = ['politics'] * len(political)
+
+        npolitical = dfe[dfe.apply(
+                lambda x: x['political'] == False, axis=1)].sort_values(by=['created_at'],ascending=False)[:sample]['text_processed'].tolist()
+        tw_class += ['non_politics'] * len(npolitical)
 
     elif dimension == 'few_parls':
-        tmp = db.politics.aggregate(
-                [
-                    {'$group': {'_id': "$user_id", 'text': {
-                        '$push': "$text_processed"}, 'count': {'$sum': 1}}},
-                    {'$sort': {'count': -1}}
-                ]
-            )
-        x = 0
-        for tw in tmp:
-            if x <= sample:
-                tweets += tw['text'][:(sample - x)]
-                x += tw['count']
-        tw_class += ['politics'] * len(tweets)
-        tmp = db.non_politics.aggregate(
-                [
-                    {'$group': {'_id': "$user_id", 'text': {
-                        '$push': "$text_processed"}, 'count': {'$sum': 1}}},
-                    {'$sort': {'count': -1}}
-                ]
-            )
-        x = 0
-        bf = len(tweets)
-        for tw in tmp:
-            if x <= sample:
-                tweets += tw['text'][:(sample - x)]
-                x += tw['count']
-        tw_class += ['non_politics'] * (len(tweets ) - bf)
-        print('tamnho tw_class: %i'% len(tw_class))
-        tweets = [t.split(' ') for t in tweets]
+
+        political = dfe[dfe.apply(lambda x: x['political'] == True, axis=1)].groupby(['user_id','text_processed']).size().to_frame('count').reset_index().sort_values(['count'])[:sample]['text_processed'].tolist()
+        tw_class = ['politics'] * len(political)
+        npolitical = dfe[dfe.apply(lambda x: x['political'] == False, axis=1)].groupby(['user_id','text_processed']).size().to_frame('count').reset_index().sort_values(['count'])[:sample]['text_processed'].tolist()
+        tw_class += ['non_politics'] * len(npolitical)
 
     else:
-        tmp = db.politics.aggregate([{ '$sample': { 'size': sample }}])
-        for tw in tmp:
-            tweets.append(tw['text_processed'].split(' '))
-            tw_class.append('politics')
 
-        tmp = db.non_politics.aggregate([{ '$sample': { 'size': sample }}])
-        for tw in tmp:
-            tweets.append(tw['text_processed'].split(' '))
-            tw_class.append('non_politics')
+        political = dfe[dfe.apply(lambda x: x['political'] == True, axis=1)].sample(n=sample, random_state=1)['text_processed'].tolist()
+        tw_class = ['politics'] * len(political)
 
+        npolitical = dfe[dfe.apply(lambda x: x['political'] == False, axis=1)].sample(n=sample, random_state=1)['text_processed'].tolist()
+        tw_class += ['non_politics'] * len(npolitical)
+    tweets = political + npolitical
     return tweets, tw_class
     
 if __name__ == "__main__":
@@ -355,18 +333,21 @@ if __name__ == "__main__":
     path = dict(cf.items("file_path"))
     dir_w2v = path['dir_w2v']
     dir_in = path['dir_in']
+    dir_data = path['dir_out']
 
     word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v+W2VEC_MODEL_FILE,
                                                    binary=False,
                                                    unicode_errors="ignore")
 
-    client = pymongo.MongoClient("mongodb://localhost:27017")
-    db = client.twitterdb
-    tweets, tw_class = get_tweets(db, SAMPLE, DISPERSION)
-    tweets, tw_class = select_tweets(tweets, tw_class)
-
+    df = pd.read_pickle(dir_data + 'trainning/trainning.pck')
+    texts = list()
+    tw_class = list()
+    texts, tw_class = get_tweets(df, SAMPLE, DISPERSION)
+    texts, tw_class = select_texts(texts, tw_class)
+    print(tw_class)
+    
     vocab = gen_vocab(word2vec_model)
-    X, y = gen_sequence(vocab)
+    X, y = gen_sequence(vocab, texts, tw_class)
 
     data = pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH)
     y = np.array(y)

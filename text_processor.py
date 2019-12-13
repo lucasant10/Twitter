@@ -23,44 +23,42 @@ class TextProcessor:
         # Phone numbers:
         r"""
         (?:
-          (?:            # (international)
+            (?:            # (international)
             \+?[01]
             [\-\s.]*
-          )?            
-          (?:            # (area code)
+            )?            
+            (?:            # (area code)
             [\(]?
             \d{3}
             [\-\s.\)]*
-          )?    
-          \d{3}          # exchange
-          [\-\s.]*   
-          \d{4}          # base
+            )?    
+            \d{3}          # exchange
+            [\-\s.]*   
+            \d{4}          # base
         )"""
         ,    
         # HTML tags:
-         r"""<[^>]+>"""
+            r"""<[^>]+>"""
         ,
         # Twitter username:
-        r"""(?:@[\w_]+)"""
+        r"""(?:@[\wáéíóúàèìòùâêîôûãõç_]+)"""
         ,
         # Twitter hashtags:
-        r"""(?:\#+[\w_]+[\w\'_\-]*[\w_]+)"""
+        r"""(?:\#+[\wáéíóúàèìòùâêîôûãõç_]+[\wáéíóúàèìòùâêîôûãõç\'_\-]*[\wáéíóúàèìòùâêîôûãõç_]+)"""
         ,
         # Remaining word types:
         r"""
-        (?:[a-z][a-z'\-_]+[a-z])       # Words with apostrophes or dashes.
+        (?:[a-záéíóúàèìòùâêîôûãõç][a-záéíóúàèìòùâêîôûãõç'\-_]+[a-záéíóúàèìòùâêîôûãõç])       # Words with apostrophes or dashes.
         |
         (?:[+\-]?\d+[,/.:-]\d+[+\-]?)  # Numbers, including fractions, decimals.
         |
-        (?:[\w_]+)                     # Words without apostrophes or dashes.
+        (?:[\wáéíóúàèìòùâêîôûãõç_]+)                     # Words without apostrophes or dashes.
         |
         (?:\S)                         # Everything else that isn't whitespace.
         """
         )
-
         word_re = re.compile(r"""(%s)""" % "|".join(regex_strings), re.VERBOSE | re.I | re.UNICODE)
         return word_re.findall(text)
-        
 
     stoplist  = stopwords.words("portuguese")+['del','bom','via','nova','agora','boa','aqui', 'foto']
 
@@ -97,7 +95,7 @@ class TextProcessor:
         plt.imshow(wc)
         plt.savefig(dir_out+name+'.png', dpi=300)
 
-    def text_process(self,doc_set, stem=False, text_only=False, lang = "portuguese"):
+    def text_process(self,doc_set, stem=False, text_only=False, hashtags=False, accent=False, lang = "portuguese"):
         # list for tokenized documents in loop
         texts = []
         # loop through document list
@@ -108,9 +106,10 @@ class TextProcessor:
             #remove urls
             raw = self.remove_urls(raw) 
             
-            # remove acentos
-            raw = self.remover_acentos(raw)
-    
+            if accent:
+                # remove acentos
+                raw = self.remover_acentos(raw)
+        
             tokens = self.tokenize(raw)
             
             if lang == "english" :
@@ -132,9 +131,13 @@ class TextProcessor:
             if text_only:
                 # remove mentions and hashtags
                 stopped_tokens = [term for term in stopped_tokens if not term.startswith(('#', '@'))]
+            if hashtags:
+                # remove mentions and keep hashtags
+                stopped_tokens = [term for term in stopped_tokens if not term.startswith(('@'))]
             
             # add tokens to list
             texts.append(stopped_tokens)
+            #texts = [term for term in texts if term]
         return texts
 
     def create_corpus(self,texts):

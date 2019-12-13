@@ -4,7 +4,7 @@ class F_map:
         # classification method
         'CNN': 0, 'LSTM': 1, 'FAST_TEXT': 2,
         # word_embeddings
-        'cbow_s100.txt': 0, 'glove_s100.txt': 1, 'skip_s100.txt': 2, 'cbow_s300.txt': 3, 'glove_s300.txt': 4,
+        'cbow_s100.txt': 0, 'glove_s100.txt': 1, 'skip_s100.txt': 2, 'cbow_s300.txt': 3, 'glove_s300.txt': 4, 'hashtag.txt':5,
         # embedding_size
         100: 0, 300: 1,
         # sample dimension
