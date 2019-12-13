@@ -19,48 +19,50 @@ import configparser
 from text_processor import TextProcessor
 import json
 import h5py
-import pymongo
+os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 
-def select_tweets(tweets, tw_class):
-    # selects the tweets as in mean_glove_embedding method
+def select_texts(texts, classes):
+    # selects the texts as in embedding method
     # Processing
-    tweet_return = []
+    text_return = []
     class_return = []
-    for i, tweet in enumerate(tweets):
+    for i, text in enumerate(texts):
         _emb = 0
-        for w in tweet:
-            if w in word2vec_model:  # Check if embeeding there in GLove model
+        for w in text:
+            if w in word2vec_model:  # Check if embeeding there in embedding model
                 _emb += 1
-        if _emb:   # Not a blank tweet
-            tweet_return.append(tweet)
-            class_return.append(tw_class[i])
-    print('Tweets selected:', len(tweet_return))
-    return tweet_return, class_return
+        if _emb:   # Not a blank text
+            text_return.append(text)
+            class_return.append(classes[i])
+    print('texts selected:', len(text_return))
+    return text_return, class_return
 
-def gen_sequence(vocab):
-    y_map = {'politics':0, 'non_politics':1}
+def gen_sequence(vocab, texts, tw_class):
+    y_map = dict()
+    for i, v in enumerate(sorted(set(tw_class))):
+        y_map[v] = i
+    print(y_map)
     X, y = [], []
-    for i, tweet in enumerate(tweets):
+    for i, text in enumerate(texts):
         seq = []
-        for word in tweet:
+        for word in text:
             seq.append(vocab.get(word, vocab['UNK']))
         X.append(seq)
         y.append(y_map[tw_class[i]])
     return X, y
 
-def get_tweets(db):
-    tweets = list()
+def get_tweets(dfe):
     tw_class = list()
-    tmp = db.val_politics.find()
-    for tw in tmp:
-        tweets.append(tw['text_processed'].split(' '))
-        tw_class.append('politics')
+    political = list()
+    npolitical = list()
 
-    tmp = db.val_non_politics.find()
-    for tw in tmp:
-        tweets.append(tw['text_processed'].split(' '))
-        tw_class.append('non_politics')
+    political = dfe[dfe.apply(lambda x: x['political'] == True, axis=1)]['text_processed'].tolist()
+    tw_class = ['politics'] * len(political)
+
+    npolitical = dfe[dfe.apply(lambda x: x['political'] == False, axis=1)]['text_processed'].tolist()
+    tw_class += ['non_politics'] * len(npolitical)
+    tweets = political + npolitical
     return tweets, tw_class
         
 if __name__ == "__main__":
@@ -83,23 +85,24 @@ if __name__ == "__main__":
     path = dict(cf.items("file_path"))
     dir_w2v = path['dir_w2v']
     dir_val = path['dir_val']
+    dir_data = path['dir_out']
 
     print('loading vector model')
     word2vec_model = gensim.models.KeyedVectors.load_word2vec_format(dir_w2v + W2VEC_MODEL_FILE,
                                                    binary=False,
                                                    unicode_errors="ignore")
+
+    df = pd.read_pickle(dir_data + 'validation/validation.pck')
+    texts = list()
+    tw_class = list()
+    texts, tw_class = get_tweets(df)
+    texts, tw_class = select_texts(texts, tw_class)
+    
     print('load w2v model')
     model = load_model(dir_w2v + arg_model + '.h5')
-    model.compile(loss='binary_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
     vocab = np.load(dir_w2v + dictfile + '.npy').item()
 
-    print('load tweets from db')
-    client = pymongo.MongoClient("mongodb://localhost:27017")
-    db = client.twitterdb
-    tweets, tw_class = get_tweets(db)
-    tweets, tw_class = select_tweets(tweets, tw_class)
-
-    X, y = gen_sequence(vocab)
+    X, y = gen_sequence(vocab, texts, tw_class)
     data = pad_sequences(X, maxlen=maxlen)
     y = np.array(y)
     print('predicting')
